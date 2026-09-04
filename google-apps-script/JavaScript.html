@@ -1,0 +1,292 @@
+<script>
+'use strict';
+
+const state={configured:false,view:location.hash.replace(/^#\/?/,'')||'dashboard',year:'',query:'',filterStatus:'',alertFilter:'Semua',selectedRecord:'',returnView:'reports-rp',dashboard:null,bootstrap:null,currentReports:[]};
+const content=document.querySelector('#content');
+const dialog=document.querySelector('#activity-dialog');
+const form=document.querySelector('#activity-form');
+const drawer=document.querySelector('#notification-drawer');
+const backdrop=document.querySelector('#drawer-backdrop');
+const sidebar=document.querySelector('#sidebar');
+const sidebarBackdrop=document.querySelector('#sidebar-backdrop');
+
+const unitMeta={
+  RPJID:{label:'Rekomendasi Pemupukan & Jasa Informasi Digital',short:'Rekomendasi & JID',cls:'rpjid',view:'rpjid',icon:'flask'},
+  BT:{label:'Bantuan Teknis',short:'Bantuan Teknis',cls:'bt',view:'bt',icon:'briefcase'},
+  PLT:{label:'Pelatihan',short:'Pelatihan',cls:'plt',view:'plt',icon:'calendar'},
+  ADM:{label:'Administrasi',short:'Administrasi',cls:'adm',view:'admin',icon:'folder'},
+};
+
+const titles={
+  dashboard:['Dashboard Utama','Ringkasan terpadu seluruh kegiatan UPJKP'],
+  rpjid:['Rekomendasi Pemupukan & JID','Laporan rekomendasi, laboratorium, lampiran dosis, produk, dan penjualan'],
+  bt:['Bantuan Teknis','Kegiatan lapangan, regional, tim pelaksana, dan progres laporan'],
+  plt:['Pelatihan','Agenda pelatihan, peserta, tenaga ahli, dan souvenir'],
+  admin:['Administrasi','Basis data, surat, dokumen, billing, RKAP, validasi, dan audit'],
+  'activities-admin':['Daftar Pekerjaan Administrasi','Pekerjaan konsultansi dan tahapan administrasi'],
+  activities:['Daftar Kegiatan','Seluruh kegiatan terintegrasi dalam satu basis data'],
+  'activities-bt':['Kegiatan Bantuan Teknis','Daftar pekerjaan lapangan dan dukungan teknis'],
+  'reports-rp':['Monitoring Laporan Rekomendasi','Deadline 30 hari, tujuh checkpoint, NET, dan RP27'],
+  'reports-bt':['Monitoring Laporan Bantuan Teknis','Draft, koreksi, revisi, cetak, dan pengiriman'],
+  labs:['Dashboard Laboratorium','Monitoring sampel daun, tanah, KCD, dan umur proses'],
+  jid:['JID & Inventory','Produk, mutasi stok, transaksi, dan pendapatan'],
+  training:['Kegiatan Pelatihan','Jadwal, peserta, kesiapan, tenaga ahli, dan souvenir'],
+  experts:['Tenaga Ahli','Kompetensi, status aktif, dan ketersediaan personel'],
+  billing:['UPJKP Billing Center','Tagihan lintas subbagian, pembayaran, dan aging piutang'],
+  companies:['Master Perusahaan','Satu identitas perusahaan untuk seluruh histori layanan'],
+  doses:['Lampiran Dosis','Dokumen rekomendasi dosis dan status verifikasi'],
+  correspondence:['Surat Masuk','Korespondensi dan dokumen kegiatan'],
+  rkap:['RKAP','Target pendapatan per subbagian dan periode'],
+  documents:['Dokumen','Arsip dokumen lintas modul dan versi'],
+  'bt-team':['Tim & SPJ','Tim pelaksana, HK, panjar, dan realisasi SPJ'],
+  validation:['Validasi & Audit','Pemeriksaan kualitas data dan jejak perubahan'],
+  audit:['Audit Log','Riwayat perubahan database yang dapat ditelusuri'],
+};
+
+const rupiah=new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0});
+const angka=new Intl.NumberFormat('id-ID',{maximumFractionDigits:0});
+const tanggal=new Intl.DateTimeFormat('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+const esc=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
+
+function callServer(name,...args) {
+  return new Promise((resolve,reject)=>{
+    const runner=google.script.run.withSuccessHandler(result=>{
+      if (result&&result.ok===false) reject(new Error(result.error||'Operasi gagal'));
+      else resolve(result&&result.ok?result.data:result);
+    }).withFailureHandler(error=>reject(new Error(error&&error.message?error.message:String(error))));
+    runner[name](...args);
+  });
+}
+
+function money(value){return rupiah.format(Number(value||0))}
+function compact(value){const number=Number(value||0);if(Math.abs(number)>=1e9)return`Rp ${(number/1e9).toLocaleString('id-ID',{maximumFractionDigits:1})} M`;if(Math.abs(number)>=1e6)return`Rp ${(number/1e6).toLocaleString('id-ID',{maximumFractionDigits:1})} jt`;if(Math.abs(number)>=1e3)return`Rp ${(number/1e3).toLocaleString('id-ID',{maximumFractionDigits:0})} rb`;return money(number)}
+function dateText(value){if(!value)return'—';const text=String(value),date=new Date(text.length===10?text+'T00:00:00+07:00':text);return isNaN(date)?esc(text):tanggal.format(date)}
+function toast(message,type='success'){const item=document.createElement('div');item.className=`toast ${type}`;item.textContent=message;document.querySelector('#toasts').append(item);setTimeout(()=>item.remove(),3600)}
+function loading(message='Memuat data…'){content.innerHTML=`<div class="loader"><span></span><p>${esc(message)}</p></div>`}
+function pageHead(title,subtitle,actions=''){return`<header class="pagehead"><div><span class="section-kicker">UPJKP MONITORING CENTER</span><h1>${esc(title)}</h1><p>${esc(subtitle)}</p></div><div class="actions">${actions}</div></header>`}
+function toolbar(extra=''){return`<div class="toolbar"><input class="input" data-role="query" value="${esc(state.query)}" placeholder="Cari dalam tabel…"><button class="button secondary" data-action="search">Cari</button>${extra}<span class="spacer"></span><button class="button primary" data-action="create">+ Catat Kegiatan</button></div>`}
+function getModule(name,filters={}){return callServer('getModuleData',name,{query:state.query,filters,pageSize:200})}
+
+function updateNav(){document.querySelectorAll('.nav[data-view]').forEach(element=>element.classList.toggle('active',element.dataset.view===state.view))}
+function updateBell(count){const element=document.querySelector('#bell-count');element.textContent=count>99?'99+':String(count||0);element.classList.toggle('hidden',!count)}
+function closeSidebar(){sidebar.classList.remove('open');sidebarBackdrop.classList.add('hidden')}
+function toggleSidebar(){const open=!sidebar.classList.contains('open');sidebar.classList.toggle('open',open);sidebarBackdrop.classList.toggle('hidden',!open)}
+
+function updateClock() {
+  const time=document.querySelector('#live-time'),date=document.querySelector('#live-date');
+  if (!time||!date) return;
+  const now=new Date();
+  time.textContent=now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',hour12:false});
+  date.textContent=now.toLocaleDateString('id-ID',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+}
+setInterval(updateClock,30000);
+
+function renderSetup() {
+  state.configured=false;
+  document.querySelector('#database-name').textContent='Belum disiapkan';
+  content.innerHTML=`<section class="setup"><div class="panel setup-hero"><span class="section-kicker">SETUP PERTAMA</span><h1>Siapkan UPJKP Monitoring Center</h1><p>Aplikasi akan membuat satu Google Sheet master dengan 24 tabel, folder Dokumen, folder Backup, dan trigger pemeriksaan harian di Google Drive akun ini.</p><div class="setup-steps"><article><span>1</span><h3>Database</h3><p>Google Sheet terstruktur dengan ID relasional dan audit log.</p></article><article><span>2</span><h3>Dokumen</h3><p>Folder Drive terpisah dari source code dan spreadsheet.</p></article><article><span>3</span><h3>Otomasi</h3><p>Trigger harian untuk SLA, billing, stok, dan pelatihan.</p></article></div><p class="setup-warning">Setup meminta izin Google Sheets, Drive, dan trigger. Tidak ada data yang dihapus. Database baru hanya dibuat satu kali.</p><div class="actions" style="margin-top:18px"><button class="button primary" data-action="setup">Siapkan Aplikasi</button></div></div></section>`;
+}
+
+async function render() {
+  updateNav();
+  if (!state.configured) { renderSetup(); return; }
+  loading();
+  try {
+    switch(state.view) {
+      case 'dashboard': renderDashboard(state.dashboard); break;
+      case 'rpjid': await renderUnit('RPJID'); break;
+      case 'bt': await renderUnit('BT'); break;
+      case 'plt': await renderUnit('PLT'); break;
+      case 'admin': await renderAdminDashboard(); break;
+      case 'activities': await renderActivities(); break;
+      case 'activities-bt': await renderActivities({subbagian:'BT'}); break;
+      case 'activities-admin': await renderActivities({subbagian:'ADM'}); break;
+      case 'reports-rp': await renderReports('RP'); break;
+      case 'reports-bt': await renderReports('UMUM'); break;
+      case 'report-detail': await renderReportDetail(state.selectedRecord); break;
+      case 'labs': await renderLabs(); break;
+      case 'jid': await renderJid(false); break;
+      case 'catalog': await renderJid(true); break;
+      case 'training': await renderTraining(false); break;
+      case 'calendar': await renderTraining(true); break;
+      case 'souvenirs': await renderSouvenirs(); break;
+      case 'regional': await renderRegional(); break;
+      case 'billing': await renderBilling(); break;
+      case 'experts': await renderSimple('experts','experts',[{key:'expert_id',label:'ID',cls:'mono'},{key:'nama',label:'Nama',render:value=>`<strong>${esc(value)}</strong>`},{key:'bidang_keahlian',label:'Bidang Keahlian'},{key:'kontak',label:'Kontak'},{key:'status_aktif',label:'Status',render:value=>statusBadge(String(value).toUpperCase()==='YA'?'AKTIF':'TIDAK AKTIF')}]); break;
+      case 'companies': await renderSimple('companies','companies',[{key:'company_id',label:'ID',cls:'mono'},{key:'nama',label:'Perusahaan',render:value=>`<strong>${esc(value)}</strong>`},{key:'jenis_instansi',label:'Instansi'},{key:'regional',label:'Regional'},{key:'pic',label:'PIC'},{key:'status_aktif',label:'Status',render:value=>statusBadge(String(value).toUpperCase()==='YA'?'AKTIF':'TIDAK AKTIF')}]); break;
+      case 'doses': await renderSimple('doses','doses',[{key:'dose_id',label:'ID',cls:'mono'},{key:'perusahaan',label:'Perusahaan',render:value=>`<strong>${esc(value)}</strong>`},{key:'kebun',label:'Kebun'},{key:'tahun_rekomendasi',label:'Tahun'},{key:'tanggal_upload',label:'Upload',render:dateText},{key:'pic',label:'PIC'},{key:'status',label:'Status',render:statusBadge}]); break;
+      case 'correspondence': await renderSimple('correspondence','correspondence',[{key:'correspondence_id',label:'ID',cls:'mono'},{key:'jenis_surat',label:'Jenis'},{key:'nomor_surat',label:'Nomor Surat'},{key:'tanggal',label:'Tanggal',render:dateText},{key:'perihal',label:'Perihal'},{key:'activity_id',label:'Kegiatan',cls:'mono'}]); break;
+      case 'rkap': await renderSimple('rkap','rkap',[{key:'rkap_id',label:'ID',cls:'mono'},{key:'tahun',label:'Tahun'},{key:'subbagian',label:'Subbagian',render:value=>statusBadge(unitMeta[value]?.short||value)},{key:'bulan',label:'Bulan'},{key:'nilai',label:'Target',cls:'number',render:money}]); break;
+      case 'documents': await renderSimple('documents','documents',[{key:'document_id',label:'ID',cls:'mono'},{key:'module',label:'Modul'},{key:'nama_asli',label:'Nama Dokumen',render:value=>`<strong>${esc(value)}</strong>`},{key:'tipe',label:'Tipe'},{key:'versi',label:'Versi'},{key:'tahap',label:'Tahap'},{key:'pic',label:'PIC'}]); break;
+      case 'bt-team': await renderSimple('team','bt-team',[{key:'team_id',label:'ID',cls:'mono'},{key:'nama',label:'Nama',render:value=>`<strong>${esc(value)}</strong>`},{key:'peran',label:'Peran'},{key:'hk',label:'HK',cls:'number'},{key:'nominal_hk',label:'Nominal HK',cls:'number',render:money},{key:'total_spj',label:'Total SPJ',cls:'number',render:money},{key:'panjar',label:'Panjar',cls:'number',render:money},{key:'realisasi_panjar',label:'Realisasi',cls:'number',render:money}]); break;
+      case 'validation': await renderValidation(); break;
+      case 'audit': await renderSimple('audit','audit',[{key:'timestamp',label:'Waktu',render:dateText},{key:'actor',label:'Aktor'},{key:'action',label:'Aksi',render:statusBadge},{key:'table_name',label:'Tabel',cls:'mono'},{key:'record_id',label:'Record',cls:'mono'},{key:'reason',label:'Alasan'}]); break;
+      case 'database': renderDatabaseCenter(); break;
+      case 'settings': renderSettings(); break;
+      default: state.view='dashboard'; location.hash='/dashboard'; renderDashboard(state.dashboard);
+    }
+  } catch(error) {
+    content.innerHTML=pageHead('Gagal Memuat Data','Terjadi gangguan saat membaca Google Sheet.')+emptyState('Permintaan gagal',error.message,'<button class="button primary" data-action="refresh">Coba Lagi</button>');
+    toast(error.message,'error');
+  }
+}
+
+async function refresh() {
+  loading('Menyinkronkan Google Sheet…');
+  const boot=await callServer('getBootstrap',state.year||null);
+  state.bootstrap=boot;state.configured=boot.configured;
+  if (!boot.configured) { renderSetup(); return; }
+  state.dashboard=boot.dashboard;
+  document.querySelector('#database-name').textContent=boot.databaseName;
+  const name=boot.user&&boot.user!=='web-user'?boot.user.split('@')[0]:'Administrator';
+  document.querySelector('#profile-name').textContent=name;
+  document.querySelector('#profile-initial').textContent=name.slice(0,1).toUpperCase();
+  updateBell(state.dashboard.kpis.notifications_unread);
+  await render();
+}
+
+function navigate(view,{keepFilter=false}={}) {
+  state.view=view;state.query='';
+  if (!keepFilter) state.filterStatus='';
+  location.hash='/'+view;
+  closeSidebar();
+  render();
+}
+
+function closeDrawer(){drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');backdrop.classList.add('hidden')}
+
+async function notifications() {
+  const data=await getModule('notifications');
+  const active=data.items.filter(row=>!row.resolved_at).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
+  document.querySelector('#notification-list').innerHTML=active.length?active.map(row=>`<article class="notification ${String(row.prioritas).toUpperCase()==='TINGGI'?'high':''}"><i></i><div><strong>${esc(row.judul)}</strong><p>${esc(row.isi)}</p><small>${dateText(row.created_at)} · ${esc(row.kategori)}</small></div>${row.read_at?'':`<button class="button secondary small" data-action="read" data-id="${esc(row.notification_id)}">Baca</button>`}</article>`).join(''):emptyState('Tidak ada notifikasi','Semua tindak lanjut sudah diselesaikan.');
+  drawer.classList.add('open');drawer.setAttribute('aria-hidden','false');backdrop.classList.remove('hidden');
+}
+
+document.addEventListener('click',async event=>{
+  const viewTarget=event.target.closest('[data-view]');
+  if (viewTarget) {
+    const filter=viewTarget.dataset.filterStatus||'';
+    if (filter) state.filterStatus=filter;
+    navigate(viewTarget.dataset.view,{keepFilter:Boolean(filter)});
+    return;
+  }
+  const button=event.target.closest('[data-action]');
+  if (!button) return;
+  const action=button.dataset.action;
+  try {
+    if (action==='setup') {
+      if (!confirm('Buat database dan folder UPJKP pada Google Drive akun ini?')) return;
+      button.disabled=true;button.textContent='Menyiapkan…';
+      const result=await callServer('setupApplication',{});toast(result.message);await refresh();
+    } else if (action==='create') {
+      form.reset();form.elements.tahun.value=new Date().getFullYear();dialog.showModal();
+    } else if (action==='refresh') {
+      state.query='';await refresh();toast('Data telah disinkronkan.');
+    } else if (action==='search') {
+      state.query=document.querySelector('[data-role="query"]')?.value.trim()||'';await render();
+    } else if (action==='notifications') await notifications();
+    else if (action==='close-drawer') closeDrawer();
+    else if (action==='toggle-sidebar') toggleSidebar();
+    else if (action==='help') toast('Gunakan menu kiri untuk membuka modul. Klik KPI, alert, atau baris laporan untuk melihat data terkait.');
+    else if (action==='profile') navigate('settings');
+    else if (action==='alert-filter') {state.alertFilter=button.dataset.filter||'Semua';renderDashboard(state.dashboard)}
+    else if (action==='report-detail') {
+      const found=state.currentReports.find(row=>String(row.report_id)===String(button.dataset.id));
+      state.selectedRecord=button.dataset.id;state.returnView=state.view==='dashboard'?(found?.workflow==='RP'?'reports-rp':'reports-bt'):state.view;state.view='report-detail';state.query='';location.hash='/report-detail';await render();
+    } else if (action==='product-detail') toast(`Produk ${button.dataset.id}: detail lengkap tersedia pada Google Sheet master.`);
+    else if (action==='run-monitor') {
+      toast('Pemeriksaan otomatis sedang berjalan…');const result=await callServer('runDailyMonitor');toast(`${result.notificationsCreated} notifikasi dan ${result.billingDraftsCreated} draft tagihan dibuat.`);await refresh();if(drawer.classList.contains('open'))await notifications();
+    } else if (action==='demo') {
+      if (!confirm('Muat data contoh berlabel DEMO? Tabel yang sudah berisi data tidak akan ditimpa.')) return;
+      const result=await callServer('seedDemoData');toast(result.message);await refresh();
+    } else if (action==='backup') {
+      const result=await callServer('manualBackup');toast('Backup berhasil dibuat.');window.open(result.backupUrl,'_blank');
+    } else if (action==='database') {
+      const tab=window.open('about:blank','_blank'),links=await callServer('getDatabaseLinks');if(tab)tab.location=links.databaseUrl;else toast('Izinkan pop-up untuk membuka database.','error');
+    } else if (action==='read') {
+      await callServer('markNotificationRead',button.dataset.id);await notifications();await refresh();
+    }
+  } catch(error) {toast(error.message,'error');button.disabled=false}
+});
+
+document.addEventListener('change',async event=>{
+  if (event.target.id==='dashboard-year') {state.year=event.target.value;await refresh()}
+  if (event.target.id==='report-status-filter') {state.filterStatus=event.target.value;await render()}
+});
+
+document.querySelector('#global-search').addEventListener('submit',event=>{
+  event.preventDefault();state.query=document.querySelector('#global-query').value.trim();state.view='activities';state.filterStatus='';location.hash='/activities';render();
+});
+
+form.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='Menyimpan…';
+  try {const payload=Object.fromEntries(new FormData(form).entries());const result=await callServer('createActivity',payload);dialog.close();toast(`${result.activity.display_id} berhasil disimpan.`);await refresh()}
+  catch(error){toast(error.message,'error')}
+  finally{submit.disabled=false;submit.textContent='Simpan Kegiatan'}
+});
+
+window.addEventListener('hashchange',()=>{
+  const requested=location.hash.replace(/^#\/?/,'');
+  if (requested&&requested!==state.view) {state.view=requested;state.query='';state.filterStatus='';render()}
+});
+
+document.addEventListener('click', async event=>{
+  const button=event.target.closest('[data-action="sync-bt"]');
+  if (!button) return;
+  if (!confirm('Hubungkan sumber Google Sheet Bantuan Teknis dan sinkronkan data sekarang?')) return;
+  button.disabled=true;
+  const original=button.textContent;
+  button.textContent='Sinkronisasi…';
+  try {
+    const result=await callServer('connectBantuanTeknisSource');
+    toast(result.message, result.errors&&result.errors.length?'error':'success');
+    await refresh();
+    const tab=window.open(result.sourceUrl,'_blank');
+    if (!tab) toast('Izinkan pop-up untuk membuka sumber Google Sheet.','error');
+  } catch (error) { toast(error.message,'error'); }
+  finally { button.disabled=false;button.textContent=original; }
+});
+
+document.addEventListener('click', async event=>{
+  const button=event.target.closest('[data-action="templates"]');
+  if (!button) return;
+  button.disabled=true;
+  const original=button.textContent;
+  button.textContent='Membuat Template…';
+  try {
+    const result=await callServer('createInputTemplates');
+    toast(result.message);
+    const tab=window.open(result.templateUrl,'_blank');
+    if (!tab) toast('Izinkan pop-up untuk membuka template Google Sheet.','error');
+  } catch (error) { toast(error.message,'error'); }
+  finally { button.disabled=false;button.textContent=original; }
+});
+
+document.addEventListener('click', async event=>{
+  const button=event.target.closest('[data-action="sync-adm"]');
+  if (!button) return;
+  if (!confirm('Hubungkan sumber Google Sheet Administrasi dan sinkronkan data sekarang?')) return;
+  button.disabled=true; const original=button.textContent; button.textContent='Sinkronisasi…';
+  try { const result=await callServer('connectAdministrasiSource'); toast(result.message, result.errors&&result.errors.length?'error':'success'); await refresh(); const tab=window.open(result.sourceUrl,'_blank'); if(!tab) toast('Izinkan pop-up untuk membuka sumber Google Sheet.','error'); }
+  catch(error){ toast(error.message,'error'); }
+  finally { button.disabled=false; button.textContent=original; }
+});
+
+document.addEventListener('click', async event=>{
+  const button=event.target.closest('[data-action="import-templates"]');
+  if (!button) return;
+  if (!confirm('Import semua baris berisi dari workbook template ke database master? ID duplikat akan dilewati.')) return;
+  button.disabled=true;
+  const original=button.textContent;
+  button.textContent='Mengimpor…';
+  try {
+    const result=await callServer('importInputTemplates');
+    toast(result.message, result.errors&&result.errors.length?'error':'success');
+    await refresh();
+  } catch (error) { toast(error.message,'error'); }
+  finally { button.disabled=false;button.textContent=original; }
+});
+
+refresh().catch(error=>{content.innerHTML=pageHead('Aplikasi Tidak Dapat Dimuat','Periksa izin Google dan koneksi internet.')+emptyState('Inisialisasi gagal',error.message,'<button class="button primary" data-action="refresh">Coba Lagi</button>');toast(error.message,'error')});
+</script>

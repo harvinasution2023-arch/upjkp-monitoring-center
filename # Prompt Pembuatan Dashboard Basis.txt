@@ -1,0 +1,148 @@
+# Prompt Pembuatan Dashboard "Basis Data UPJKP"
+
+Salin seluruh bagian di bawah garis ini sebagai satu prompt.
+
+---
+
+Buatkan satu aplikasi web **single-file HTML** (HTML + CSS + JavaScript vanilla dalam satu berkas, tanpa framework, tanpa build step) bernama **"Basis Data UPJKP"** — aplikasi administrasi pekerjaan konsultansi. Seluruh antarmuka, label, dan pesan **berbahasa Indonesia**. Format angka dan tanggal memakai lokal `id-ID` (Rp, pemisah ribuan titik, nama bulan singkat: Jan…Des).
+
+## 1. Konsep inti
+
+Satu **surat masuk dari klien = satu kegiatan (record)**. Setiap kegiatan punya **8 tahap administrasi** yang bisa diisi bertahap, masing-masing bisa dilampiri PDF. Sumber data utama tetap file Excel milik pengguna: aplikasi bisa **impor** dari Excel dan **ekspor** kembali ke Excel.
+
+## 2. Teknologi & batasan
+
+- Satu berkas HTML. CSS dan JS inline.
+- Font: IBM Plex Sans + IBM Plex Mono dari Google Fonts.
+- Baca/tulis Excel dengan SheetJS (`xlsx.full.min.js` dari cdnjs).
+- Penyimpanan pakai API `window.storage` (`get` / `set` / `delete` / `list`), **bukan** localStorage/sessionStorage. Semua nilai disimpan sebagai JSON string, dibungkus helper `S.get/set/del/keys` dengan try–catch.
+- Record disimpan **berpotongan (chunk) 250 baris per key** (`db_chunk_0`, `db_chunk_1`, …) plus satu `db_meta` berisi jumlah baris, daftar dropdown, waktu impor, dan jumlah chunk. Lampiran di `db_files`, target RKAP di `db_rkap`, tiap PDF di key `pdf_{id}_{tahap}_{timestamp}`.
+- Render pakai pola sederhana: fungsi `render()` yang mengisi `innerHTML` dari state, satu event listener delegasi di `document` yang membaca `data-*` attribute (`data-go`, `data-step`, `data-edit`, `data-save`, `data-pick`, `data-del`, `data-jump`, `data-wiz`, dst).
+- Responsif: sidebar berubah jadi bar horizontal di bawah 760px; tabel lebar bisa digeser horizontal.
+- Aksesibilitas: `aria-label` pada setiap input dinamis, `aria-current` pada menu aktif, `:focus-visible` yang jelas, hormati `prefers-reduced-motion`.
+
+## 3. Gaya visual
+
+Tema **gelap-neon** yang tegas namun rapi (bukan neon berlebihan), definisikan sebagai CSS variable:
+
+```
+--bg:#080B10; --surface:#101720; --surface-2:#161F2A; --raise:#1C2733;
+--ink:#E8F2EE; --ink-2:#A6BAC8; --ink-3:#8296A6;
+--line:#233040; --line-2:#1A242F;
+--neon:#2BF5D0 (teal, aksen utama); --neon-2:#C6FF3D (lime);
+--neon-3:#FF48C4 (magenta); --neon-4:#FFA23A (amber); --neon-5:#4D8CFF (biru);
+--danger:#FF5C6E; --radius:10px;
+```
+
+- Latar body: dua `radial-gradient` lembut (teal di kanan atas, magenta di kiri atas) di atas `--bg`, `background-attachment:fixed`.
+- Kartu: `--surface` + border `--line` + radius 10px. Tanpa bayangan berat.
+- Tombol utama: latar teal, teks gelap (#04120E), glow tipis saat hover. Varian `ghost`, `dark`, `sm`.
+- Angka selalu `font-variant-numeric:tabular-nums`.
+- Warna per kategori kegiatan dipakai konsisten sebagai `--kc` (garis atas kartu, stripe kiri baris tabel, chip/tag).
+
+## 4. Kategori kegiatan
+
+Empat kategori utama beserta warnanya, plus fallback "Lainnya" (abu-abu):
+
+| Kode | Nama | Warna |
+|---|---|---|
+| BT | Bantuan Teknis | lime |
+| RP | Rekomendasi Pemupukan | teal |
+| TR | Pelatihan | magenta |
+| JID | Jasa Informasi Digital | amber |
+
+## 5. Struktur navigasi (sidebar)
+
+1. **Dasbor**
+2. **Daftar pekerjaan** (badge = jumlah record)
+3. **Catat surat masuk** (wizard tambah)
+4. **Berkas PDF** (badge = jumlah lampiran)
+5. **Atur RKAP**
+6. **Impor / ekspor**
+
+Sidebar juga memuat brand ("Basis Data UPJKP" + subjudul "Administrasi pekerjaan konsultansi", dengan titik neon berpendar) dan footer kecil berisi keterangan bahwa data tersimpan di peramban ini beserta tanggal impor terakhir.
+
+Bila belum ada data sama sekali, tampilkan halaman sambutan dengan dua ajakan: "Catat surat masuk" dan "Impor dari Excel".
+
+## 6. Delapan tahap administrasi
+
+Setiap tahap punya `key`, judul, catatan singkat, dan daftar field bertipe `text | date | num | month | check | sel | combo | auto`.
+
+1. **Surat masuk & balasan** — identitas kegiatan dan riwayat surat-menyurat. Field: Nama Perusahaan (wajib), Kegiatan (dropdown kategori), Instansi (S/N), Jenis Kegiatan (combo bisa ketik baru), Status biaya (Biaya/Non Biaya), No (otomatis), ID (otomatis), Durasi Surat Balasan. Punya komponen **rantai korespondensi**.
+2. **SPK** — No SPK, Tanggal, Jangka waktu pekerjaan, Jangka waktu pelaksanaan (hari), Batas akhir pelaksanaan, Biaya sebelum PPN 11%, PPN 11%, Jumlah biaya. **PPN dan jumlah biaya terhitung otomatis** begitu biaya sebelum PPN diketik.
+3. **Surat tugas, kunjungan & pelaksanaan** — No Surat Tugas, No Surat Kunjungan, Tanggal Balasan Kunjungan, Perihal kunjungan, Tanggal mulai/selesai kunjungan, No Intern 3.1, Tanggal permohonan SID, Pencairan SPJ. Punya komponen **lokasi kegiatan** dan **tim pelaksana**.
+4. **Laporan** — No surat pengiriman laporan, Tanggal pengiriman, Perihal.
+5. **Penagihan** — No Surat Penagihan, Tanggal Balasan Penagihan, Perihal, **Bulan Pencatatan Pendapatan** (tipe month), Nilai Penagihan.
+6. **Pembayaran tahap 1** — Lunas tahap 1 (checkbox), nominal, No Invoice, Jatuh tempo faktur, Tanggal bayar, No transaksi Jurnal.id.
+7. **Pembayaran tahap 2** — sama seperti tahap 6 ditambah Tanggal Invoice.
+8. **Honor** — Honor, Tanggal pengajuan, Tanggal keluar, Keterangan.
+
+Field bernilai uang ditampilkan dengan format Rupiah saat mode baca, dan sebagai input teks bermask ribuan saat mode ubah.
+
+## 7. Komponen berulang
+
+**Rantai korespondensi.** Baris dinamis: nomor urut, jenis surat (Surat masuk, Balasan surat masuk, Surat persetujuan, Balasan persetujuan, Surat susulan, Surat keluar lainnya), nomor surat, tanggal, perihal, tombol hapus. Surat masuk dan surat balasan pertama disinkronkan balik ke field datar record agar tetap cocok dengan kolom Excel.
+
+**Lokasi kegiatan.** Daftar baris teks bebas — satu kunjungan bisa mencakup beberapa kebun.
+
+**Tim pelaksana (roster).** Kolom: Nama (datalist tenaga ahli), Peran (Leader/Anggota, boleh lebih dari satu leader), HK, Nominal per HK, Total SPJ (terhitung), Panjar (checkbox), Realisasi panjar, hapus. Aturan:
+- Panjar baku **Rp 1.000.000 per orang**; kolom realisasi hanya aktif bila panjar dicentang, dan bila dikosongkan dianggap sama dengan panjar baku.
+- Durasi dinas kegiatan = **HK terbesar** di antara anggota.
+- Ringkasan di bawah tabel: jumlah orang, total HK + durasi, total SPJ, panjar & realisasinya, dan **HPP = total SPJ + realisasi panjar**.
+- Tombol "Samakan HK dengan durasi" bila durasi kegiatan diketahui.
+
+**Dropzone PDF.** Tarik-lepas atau pilih berkas, hanya PDF, maksimal 4 MB per berkas, disimpan sebagai data URL. Daftar berkas menampilkan nama, ukuran, tombol Buka dan Hapus.
+
+## 8. Halaman Dasbor
+
+Urutan dari atas:
+
+1. Judul "Dasbor {tahun}" + pemilih tahun + tombol Impor Excel, Atur RKAP, Catat surat masuk.
+2. **Pencarian cepat** (klien, ID, nomor surat, lokasi) plus chip status bayar: Lunas, Bayar sebagian, Menunggu pembayaran, Belum ditagih. Memilihnya langsung membuka daftar pekerjaan yang sudah tersaring.
+3. **Notifikasi jangka waktu**: daftar kegiatan yang batas akhir pelaksanaannya ≤ 30 hari lagi dan belum selesai, diurutkan dari yang paling mendesak. Tampilkan sisa hari ("Sisa 5 hari", "Jatuh tempo hari ini", "Lewat 3 hari" berwarna merah), maksimal 6 baris, sisanya diringkas.
+4. **Empat kartu kategori**: jumlah kegiatan, total pendapatan, meter capaian terhadap RKAP, dan keterangan persentase. Diklik → daftar pekerjaan kategori tersebut.
+5. **Lima statistik**: Pendapatan dari penagihan, HPP perjalanan dinas, Laba kotor, Margin kotor (%), Capaian RKAP (%).
+6. **Grafik batang 12 bulan** dengan tiga batang per bulan: pendapatan (teal), HPP (magenta), RKAP (bergaris/outline). Dilengkapi legenda, tooltip per bulan, dan pemilih **basis bulan**: bulan pencatatan penagihan (baku), bulan tanggal SPK, atau bulan surat masuk.
+7. **Tabel rekap bulanan per kategori** dalam **juta rupiah**: 12 kolom bulan + Setahun + RKAP + Capaian, ditambah baris HPP perjalanan dinas dan baris Laba kotor (negatif berwarna merah). Baris kategori diklik → daftar pekerjaannya.
+
+Rumus:
+- `pendapatan(record)` = Nilai Penagihan, kalau kosong pakai Jumlah biaya.
+- `HPP(record)` = total roster (SPJ + realisasi panjar); kalau roster kosong, jatuh ke Total SPJ + Total Panjar bila ada.
+- `laba = pendapatan − HPP`; `margin = laba / pendapatan × 100`.
+- `batas akhir` = field Batas akhir pelaksanaan, kalau kosong dihitung dari Tanggal SPK + jangka waktu pelaksanaan (hari).
+- Kegiatan dianggap selesai bila laporan sudah dikirim atau tahap 2 sudah lunas.
+
+## 9. Halaman lain
+
+**Daftar pekerjaan.** Chip filter kategori, kotak pencarian, dan penyaring: jenis kegiatan, status biaya, tahun, status bayar. Tabel berkolom Kategori, ID, Perusahaan, Jenis, Surat masuk, Leader, Nilai, HPP, Bulan, Status bayar, **Tahapan** (rail 8 titik: abu = kosong, biru = terisi, teal = ada PDF), jumlah PDF. Tampil 60 baris dengan tombol "Tampilkan 60 lagi". Baris diklik → halaman rincian. Status bayar diturunkan otomatis: Lunas → Bayar sebagian → Menunggu pembayaran → Belum ditagih.
+
+**Rincian pekerjaan.** Header nama perusahaan, ID, jenis, "x dari 8 tahap terisi", jumlah lampiran, chip kategori dan status biaya, tombol hapus. Di bawahnya 8 accordion tahap: nomor bulat (jadi teal saat terisi), judul, catatan, badge Terisi/Kosong. Tiap tahap dibuka → mode baca, tombol "Ubah data tahap ini" → mode edit dengan Simpan/Batal, ditambah komponen korespondensi/lokasi/roster sesuai tahap, dan dropzone PDF.
+
+**Catat surat masuk (wizard).** Rail 8 tahap yang bisa diloncati (tahap terisi ditandai). Hanya Nama Perusahaan yang wajib — beri validasi langsung berwarna. Nomor urut dan ID terbentuk otomatis: `ID = KATEGORI-INSTANSI-NOMOR`, nomor melanjutkan nomor terakhir pada kategori yang sama dan diperbarui saat kategori diganti. Lampiran PDF boleh ditambahkan sebelum disimpan.
+
+**Berkas PDF.** Tabel semua lampiran lintas pekerjaan: nama berkas, pekerjaan (ID + perusahaan), tahap, ukuran, tanggal unggah, tombol Buka. Diurutkan terbaru dulu, dengan ringkasan jumlah dan total ukuran.
+
+**Atur RKAP.** Grid 4 kategori × 12 bulan, diisi **dalam juta rupiah** (ketik 250 untuk Rp 250 juta), per tahun, dengan tombol Simpan.
+
+**Impor / ekspor.** Impor `Data_base_Admin.xlsx`: baca sheet utama (nama mengandung "admin"/"data", kalau tidak ada pakai sheet pertama) mulai baris 2, lewati baris tanpa nama perusahaan, petakan kolom Excel per huruf ke nama field, ubah tanggal Excel ke `YYYY-MM-DD`, buang nilai galat (`#VALUE!`, `#REF!`, `#N/A`, `-`, dsb.). Kolom Leader dan Tim dipecah koma menjadi roster; kolom lokasi dipecah koma/titik koma; surat masuk & balasan dijadikan rantai korespondensi; pembayaran > 0 otomatis ditandai lunas. Sheet bernama "dropdown" mengisi pilihan Kegiatan, Instansi, Keterangan, Nama-Nama Tenaga Ahli, Status pembayaran, Jenis Kegiatan, Asal Kelti, Korektor, PIC UPJKP. Data lama diganti, lampiran PDF tetap aman.
+
+Ekspor menghasilkan satu workbook 4 sheet: **Database** (susunan kolom seperti aslinya + kolom tambahan: bulan pencatatan, nilai penagihan, jangka waktu, status lunas, tanggal bayar, total HK/SPJ/panjar, HPP), **Tim & SPJ** (satu baris per orang), **Korespondensi** (satu baris per surat), **Lampiran PDF**. Nama berkas `Data_base_Admin_YYYY-MM-DD.xlsx`. Sediakan juga tombol "Kosongkan aplikasi" dengan konfirmasi.
+
+## 10. Detail kecil yang penting
+
+- Toast singkat di bawah tengah layar untuk setiap aksi (simpan, impor, hapus, gagal).
+- Spinner saat memuat data tersimpan pada awal aplikasi.
+- Semua nilai yang dirender ke HTML di-escape.
+- Angka rupiah besar disingkat di kartu: "Rp 1,2 M", "Rp 250 jt".
+- Placeholder titik (·) untuk sel tabel bernilai nol.
+- State pencarian dan penyaring dipertahankan saat berpindah halaman.
+
+Hasilkan seluruh kode dalam satu berkas yang langsung bisa dijalankan.
+
+---
+
+## Catatan pemakaian prompt ini
+
+- Kalau ingin dibangun bertahap, minta dulu **kerangka + halaman Dasbor**, baru tambahkan wizard, impor/ekspor, dan lampiran PDF di percakapan berikutnya. Hasilnya biasanya lebih rapi daripada meminta semuanya sekaligus.
+- Bagian yang paling sering perlu ditegaskan ulang: aturan HPP dari roster, basis bulan pendapatan, dan RKAP dalam satuan juta.
+- Jika ingin varian tema terang, cukup ganti blok CSS variable di bagian 3 dan sisa prompt tetap berlaku.

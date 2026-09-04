@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07110f">
+  <title>UPJKP Monitoring Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Lewati ke konten utama</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navigasi utama">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><span>U</span></div>
+        <div>
+          <strong>UPJKP</strong>
+          <small>Monitoring Center</small>
+        </div>
+      </div>
+
+      <nav class="nav-list">
+        <button class="nav-item active" data-view="dashboard" aria-current="page">
+          <span class="nav-icon">⌂</span><span>Dashboard</span>
+        </button>
+
+        <div class="nav-group">
+          <p>Rekomendasi & JID</p>
+          <button class="nav-item" data-view="rpjid"><span class="nav-dot rpjid"></span><span>Ringkasan</span></button>
+          <button class="nav-item" data-view="reports-rp"><span class="nav-icon">◫</span><span>Monitoring laporan</span></button>
+          <button class="nav-item" data-view="labs"><span class="nav-icon">⌁</span><span>Laboratorium</span></button>
+          <button class="nav-item" data-view="jid"><span class="nav-icon">▦</span><span>JID & inventory</span></button>
+        </div>
+
+        <div class="nav-group">
+          <p>Bantuan Teknis</p>
+          <button class="nav-item" data-view="bt"><span class="nav-dot bt"></span><span>Ringkasan</span></button>
+          <button class="nav-item" data-view="activities-bt"><span class="nav-icon">≡</span><span>Daftar kegiatan</span></button>
+          <button class="nav-item" data-view="reports-bt"><span class="nav-icon">◫</span><span>Monitoring laporan</span></button>
+        </div>
+
+        <div class="nav-group">
+          <p>Pelatihan</p>
+          <button class="nav-item" data-view="plt"><span class="nav-dot plt"></span><span>Ringkasan</span></button>
+          <button class="nav-item" data-view="training"><span class="nav-icon">◇</span><span>Kegiatan & kalender</span></button>
+          <button class="nav-item" data-view="experts"><span class="nav-icon">◎</span><span>Tenaga ahli</span></button>
+        </div>
+
+        <div class="nav-group">
+          <p>Administrasi</p>
+          <button class="nav-item" data-view="admin"><span class="nav-dot adm"></span><span>Ringkasan</span></button>
+          <button class="nav-item" data-view="activities"><span class="nav-icon">＋</span><span>Semua pekerjaan</span></button>
+          <button class="nav-item" data-view="billing"><span class="nav-icon">Rp</span><span>Billing Center</span></button>
+          <button class="nav-item" data-view="companies"><span class="nav-icon">▤</span><span>Perusahaan</span></button>
+          <button class="nav-item" data-view="validation"><span class="nav-icon">✓</span><span>Validasi data</span></button>
+          <button class="nav-item" data-view="audit"><span class="nav-icon">↺</span><span>Audit log</span></button>
+        </div>
+      </nav>
+
+      <div class="sidebar-foot">
+        <span class="storage-indicator"><i></i> Database terhubung</span>
+        <small id="db-name">Memeriksa database…</small>
+      </div>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <div class="mobile-brand"><strong>UPJKP</strong><small>Monitoring Center</small></div>
+        <form class="global-search" id="global-search" role="search">
+          <span aria-hidden="true">⌕</span>
+          <input id="search-input" type="search" autocomplete="off" aria-label="Pencarian global" placeholder="Cari perusahaan, kebun, laporan, ID…">
+          <kbd>Enter</kbd>
+        </form>
+        <div class="top-actions">
+          <button class="icon-btn" id="refresh-btn" data-action="refresh" aria-label="Muat ulang data" title="Muat ulang">↻</button>
+          <button class="icon-btn notification-btn" data-action="notifications" aria-label="Buka notifikasi" title="Notifikasi">
+            ♢<span id="notification-count" class="notification-count hidden">0</span>
+          </button>
+          <div class="user-chip"><span>AD</span><div><strong>Administrator</strong><small>Lokal</small></div></div>
+        </div>
+      </header>
+
+      <main id="main-content" tabindex="-1">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Menyiapkan UPJKP Monitoring Center…</p>
+        </div>
+      </main>
+    </section>
+  </div>
+
+  <div class="drawer-backdrop hidden" data-action="close-notifications"></div>
+  <aside class="notification-drawer" aria-label="Notification Center" aria-hidden="true">
+    <div class="drawer-head"><div><span class="eyebrow">PUSAT NOTIFIKASI</span><h2>Perlu ditindaklanjuti</h2></div><button class="icon-btn" data-action="close-notifications" aria-label="Tutup">×</button></div>
+    <div id="notification-list" class="notification-list"><div class="loading-inline">Memuat notifikasi…</div></div>
+    <div class="drawer-foot"><button class="btn ghost full" data-action="run-monitor">Jalankan pemeriksaan sekarang</button></div>
+  </aside>
+
+  <dialog id="activity-dialog" class="modal">
+    <form id="activity-form" method="dialog">
+      <div class="modal-head">
+        <div><span class="eyebrow">ADMINISTRASI</span><h2>Catat kegiatan baru</h2><p>Satu surat masuk mewakili satu kegiatan konsultansi.</p></div>
+        <button class="icon-btn" value="cancel" aria-label="Tutup">×</button>
+      </div>
+      <div class="form-grid">
+        <label class="span-2">Nama perusahaan <em>*</em><input name="perusahaan" required placeholder="Contoh: PT Agro Sejahtera"></label>
+        <label>Subbagian<select name="subbagian"><option value="RPJID">Rekomendasi Pemupukan & JID</option><option value="BT">Bantuan Teknis</option><option value="PLT">Pelatihan</option><option value="ADM">Administrasi</option></select></label>
+        <label>Kategori<select name="kategori"><option value="RP">Rekomendasi Pemupukan</option><option value="JID">Jasa Informasi Digital</option><option value="BT">Bantuan Teknis</option><option value="TR">Pelatihan</option><option value="LN">Lainnya</option></select></label>
+        <label class="span-2">Nama/jenis kegiatan<input name="jenis_kegiatan" placeholder="Nama kegiatan"></label>
+        <label>Regional<select name="regional"><option value="">Pilih regional</option><option>R1</option><option>R2</option><option>R3</option><option>R4</option><option>R5</option><option>R6</option><option>R7</option><option>R4P</option><option>SW</option></select></label>
+        <label>Kebun/lokasi<input name="kebun_lokasi" placeholder="Kebun atau lokasi"></label>
+        <label>Tahun<input name="tahun" type="number" min="2000" max="2100"></label>
+        <label>Tanggal surat masuk<input name="tanggal_surat_masuk" type="date"></label>
+        <label>Nilai kontrak<input name="nilai_kontrak" inputmode="numeric" placeholder="0"></label>
+        <label>HPP<input name="hpp" inputmode="numeric" placeholder="0"></label>
+        <label>PIC<input name="pic" placeholder="Nama PIC"></label>
+        <label>Status biaya<select name="status_biaya"><option>Biaya</option><option>Non Biaya</option></select></label>
+        <label class="span-2">Catatan<textarea name="catatan" rows="3" placeholder="Catatan tambahan"></textarea></label>
+      </div>
+      <div class="modal-actions"><button class="btn ghost" value="cancel">Batal</button><button class="btn primary" type="submit" value="default">Simpan kegiatan</button></div>
+    </form>
+  </dialog>
+
+  <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

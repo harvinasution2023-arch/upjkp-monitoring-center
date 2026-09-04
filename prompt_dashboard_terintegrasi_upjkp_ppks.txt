@@ -1,0 +1,1221 @@
+# PROMPT PEMBUATAN DASHBOARD TERINTEGRASI MONITORING KEGIATAN UPJKP–PPKS
+
+Bertindak sebagai **Senior Full-Stack Developer, Data Engineer, dan UI/UX Designer**. Bangun aplikasi web bernama **“UPJKP Monitoring Center”** untuk mengelola basis data administrasi pekerjaan konsultansi sekaligus memonitor progres laporan, kinerja regional, tenggat, analisis laboratorium, lampiran dosis, Jasa Informasi Digitalisasi (JID), penagihan, pelatihan, tenaga ahli, souvenir, RKAP, tim pelaksana, dan dokumen.
+
+Aplikasi harus mencerminkan tepat empat subbagian UPJKP:
+
+1. **Rekomendasi Pemupukan dan Jasa Informasi Digital** — laporan rekomendasi, laboratorium, lampiran dosis, produk, stok, katalog, serta transaksi JID.
+2. **Bantuan Teknis** — kegiatan lapangan, regional, tim/SPJ, dan monitoring laporan dari draft sampai dikirim.
+3. **Pelatihan** — kegiatan, kalender, peserta, tenaga ahli, konflik jadwal, dan souvenir.
+4. **Administrasi** — surat masuk, delapan tahap administrasi, perusahaan, dokumen, billing, pembayaran, RKAP, impor/ekspor, validasi, audit, dan backup.
+
+Dashboard utama berada di atas keempat subbagian sebagai pusat ringkasan lintas unit, bukan sebagai subbagian kelima.
+
+Untuk pekerjaan konsultansi, satu surat masuk dari klien mewakili satu kegiatan. Record operasional lain seperti sampel laboratorium, transaksi stok, billing, dan pelatihan memiliki ID sendiri serta dihubungkan ke kegiatan bila relevan. Seluruh informasi administrasi, pelaksanaan, monitoring laporan, laboratorium, produk, transaksi, penagihan, pelatihan, tim, dan dokumen harus terhubung melalui ID unik sehingga tidak ada data ganda antarhalaman. Nama perusahaan tidak boleh dipakai sebagai satu-satunya kunci relasi.
+
+Prinsip utama sistem adalah **DATA TIDAK BOLEH HILANG**. OneDrive menjadi sumber penyimpanan database dan dokumen operasional, sedangkan GitHub hanya menjadi sumber kode, dokumentasi, serta version control.
+
+---
+
+## 1. Hasil akhir yang wajib dibuat
+
+- Aplikasi full-stack lokal bernama **UPJKP Monitoring Center** yang berjalan pada Windows dan dapat dibuka melalui browser modern di komputer atau jaringan yang diizinkan.
+- Frontend menggunakan HTML, CSS, dan JavaScript vanilla. Frontend boleh tetap berupa satu entry HTML tanpa framework atau build step, tetapi proyek secara keseluruhan wajib modular.
+- Backend dan pengolahan data menggunakan Python dengan API lokal yang jelas.
+- Database operasional awal memakai workbook Excel terstruktur di OneDrive. Lapisan repository/data-access harus memungkinkan migrasi ke SQLite atau PostgreSQL tanpa mendesain ulang domain dan antarmuka.
+- Dokumen disimpan di OneDrive; aplikasi hanya menyimpan metadata serta link/path yang tervalidasi. Binary dokumen tidak boleh masuk GitHub.
+- Seluruh antarmuka, label, validasi, notifikasi, dan pesan menggunakan bahasa Indonesia.
+- Format angka dan tanggal menggunakan lokal `id-ID`.
+- Data dapat diimpor dari dua format Excel lama, digabungkan secara aman, dikelola melalui aplikasi, dan diekspor kembali ke workbook terstruktur.
+- Sediakan otomasi harian melalui script Python yang kompatibel dengan Windows Task Scheduler.
+- Sertakan source code, konfigurasi contoh, migrasi/inisialisasi database, pengujian, dokumentasi, logging, backup/restore, serta README lengkap.
+
+## 2. Arsitektur, teknologi, dan batasan
+
+Gunakan alur arsitektur berikut:
+
+```text
+OneDrive        → master database, dokumen, dan backup
+Python backend  → API, validasi, transaksi data, impor-ekspor, reminder, audit, backup
+Web frontend    → antarmuka pengguna
+Windows PC      → lingkungan lokal dan penjadwalan otomasi
+GitHub          → source code, dokumentasi, dan version control
+```
+
+Ketentuan teknis:
+
+- Gunakan Python untuk backend. Pilih framework API yang ringan dan stabil, lalu dokumentasikan alasan serta cara menjalankannya.
+- Gunakan HTML, CSS, dan JavaScript vanilla untuk frontend tanpa framework dan tanpa build step.
+- Gunakan IBM Plex Sans dan IBM Plex Mono dari Google Fonts; sediakan fallback font sistem jika internet tidak tersedia.
+- SheetJS boleh digunakan di frontend untuk pratinjau, tetapi parsing, validasi, backup, dan penulisan database master harus dilakukan secara terkendali di backend.
+- Semua mutasi data melewati service/repository backend; frontend tidak boleh menulis langsung ke workbook master.
+- `window.storage`, jika tersedia, hanya boleh dipakai untuk cache UI, filter, dan draf sementara. Ia bukan sumber data utama. Jangan memakai `localStorage` atau `sessionStorage` untuk database operasional.
+- Konfigurasi OneDrive diletakkan pada `.env` atau file konfigurasi lokal, misalnya `ONEDRIVE_DATABASE_PATH` dan `ONEDRIVE_DOCUMENT_PATH`. Jangan hard-code username atau path Windows.
+- Jangan memasukkan credential, token, database, backup, log internal, Excel produksi, PDF, DOCX, atau dokumen pelanggan ke GitHub.
+- Terapkan penguncian file atau deteksi file sedang dipakai/disinkronkan. Jika workbook terkunci atau OneDrive belum stabil, hentikan write dengan aman, catat error, dan jangan memaksa overwrite.
+- Setiap write ke database master wajib mengikuti urutan: validasi → backup → tulis atomik ke file sementara → validasi hasil → replace aman → audit/log.
+- Render frontend dapat memakai fungsi utama `render()` dan event delegation pada `document` dengan atribut `data-*`.
+- Tabel lebar harus dapat digeser horizontal.
+- Sidebar berubah menjadi navigasi horizontal atau bottom navigation pada lebar di bawah 760 px.
+- Gunakan `aria-label` pada input dinamis, `aria-current` pada menu aktif, fokus keyboard yang jelas, serta hormati `prefers-reduced-motion`.
+- Semua data yang masuk ke HTML wajib di-escape. Validasi juga dilakukan kembali di backend.
+
+Struktur proyek yang disarankan:
+
+```text
+UPJKP-Monitoring/
+├── app/
+├── backend/
+├── frontend/
+├── data/            # hanya contoh/skema, bukan data produksi
+├── scripts/
+├── config/
+├── assets/
+├── docs/
+├── logs/            # diabaikan Git
+├── tests/
+├── output/          # diabaikan Git bila berisi data
+├── .env.example
+├── .gitignore
+├── README.md
+└── requirements.txt
+```
+
+## 3. Tema visual
+
+Gunakan tema gelap-neon yang tegas, profesional, dan tidak berlebihan:
+
+```css
+--bg:#080B10;
+--surface:#101720;
+--surface-2:#161F2A;
+--raise:#1C2733;
+--ink:#E8F2EE;
+--ink-2:#A6BAC8;
+--ink-3:#8296A6;
+--line:#233040;
+--line-2:#1A242F;
+--neon:#2BF5D0;
+--neon-2:#C6FF3D;
+--neon-3:#FF48C4;
+--neon-4:#FFA23A;
+--neon-5:#4D8CFF;
+--danger:#FF5C6E;
+--radius:10px;
+```
+
+- Latar memakai dua radial-gradient lembut, teal di kanan atas dan magenta di kiri atas, di atas `--bg` dengan `background-attachment: fixed`.
+- Kartu memakai `--surface`, border `--line`, dan radius 10 px tanpa bayangan berat.
+- Tombol utama berwarna teal dengan teks gelap dan glow tipis saat hover.
+- Sediakan varian tombol `ghost`, `dark`, `sm`, dan `danger`.
+- Semua angka menggunakan `font-variant-numeric: tabular-nums`.
+- Warna kategori digunakan konsisten sebagai `--kc` pada kartu, chip, grafik, dan stripe kiri tabel.
+- Status terlambat memakai merah, mendekati tenggat memakai amber, proses memakai biru, dan selesai memakai teal.
+
+## 4. Model data terpadu
+
+Setiap record minimal memiliki kelompok data berikut:
+
+### 4.1 Identitas kegiatan
+
+- `recordId` internal yang tidak berubah.
+- Nomor urut.
+- ID kegiatan otomatis dengan pola `KATEGORI-INSTANSI-NOMOR`.
+- Nama perusahaan/klien, wajib.
+- Kategori kegiatan.
+- Instansi.
+- Jenis kegiatan.
+- Status biaya: Biaya atau Non Biaya.
+- Regional.
+- Kebun/lokasi utama.
+- Tahun kegiatan.
+- Keterangan/catatan.
+- Asal kelompok peneliti, PIC UPJKP, dan metadata lain dari file sumber jika tersedia.
+
+### 4.2 Kategori kegiatan
+
+| Kode | Nama | Warna |
+|---|---|---|
+| BT | Bantuan Teknis | lime |
+| RP | Rekomendasi Pemupukan | teal |
+| TR | Pelatihan | magenta |
+| JID | Jasa Informasi Digital | amber |
+| LN | Lainnya | abu-abu |
+
+Kategori kegiatan tidak sama dengan struktur organisasi/menu. Setiap record juga memiliki field `subbagian` dengan tepat empat pilihan resmi:
+
+| Kode | Subbagian | Ruang lingkup utama |
+|---|---|---|
+| RPJID | Rekomendasi Pemupukan dan Jasa Informasi Digital | Rekomendasi pemupukan, monitoring laporan RP, analisis laboratorium, lampiran dosis, produk/inventory/penjualan JID, serta katalog produk |
+| BT | Bantuan Teknis | Kegiatan bantuan teknis, kunjungan, monitoring laporan, koreksi, regional, dan tahun |
+| PLT | Pelatihan | Kegiatan dan kalender pelatihan, tenaga ahli, peserta, serta souvenir |
+| ADM | Administrasi | Surat-menyurat, basis data perusahaan, dokumen, keuangan, Billing Center, RKAP, impor/ekspor, validasi, audit, dan backup |
+
+`subbagian` wajib digunakan sebagai pengelompokan tingkat pertama. `kategori kegiatan` tetap digunakan sebagai klasifikasi record di dalam subbagian. Nilai subbagian dapat diturunkan otomatis dari jenis/kategori record, tetapi pengguna berwenang dapat memperbaikinya dengan audit trail.
+
+### 4.3 Regional
+
+Pilihan regional bawaan:
+
+- Regional 1 (`R1`)
+- Regional 2 (`R2`)
+- Regional 3 (`R3`)
+- Regional 4 (`R4`)
+- Regional 5 (`R5`)
+- Regional 6 (`R6`)
+- Regional 7 (`R7`)
+- Regional 4 PalmCo (`R4P`)
+- Swasta/PPKS (`SW`)
+- Lainnya (`LN`)
+
+Regional dapat ditambah melalui metadata dropdown tanpa mengubah kode aplikasi.
+
+### 4.4 Entitas/tabel master
+
+Workbook master atau repository data minimal menyediakan tabel/sheet berikut. Gunakan nama teknis stabil agar migrasi database mudah dilakukan:
+
+1. `MASTER_PERUSAHAAN`
+2. `KEGIATAN`
+3. `MONITORING_LAPORAN`
+4. `HISTORI_LAPORAN`
+5. `KORESPONDENSI`
+6. `LOKASI_KEGIATAN`
+7. `TIM_SPJ`
+8. `ANALISIS_LAB`
+9. `LAMPIRAN_DOSIS`
+10. `MASTER_PRODUK_JID`
+11. `STOK_JID`
+12. `TRANSAKSI_JID`
+13. `PENAGIHAN`
+14. `KEGIATAN_PELATIHAN`
+15. `TENAGA_AHLI`
+16. `JADWAL_TENAGA_AHLI`
+17. `MASTER_SOUVENIR`
+18. `TRANSAKSI_SOUVENIR`
+19. `DOKUMEN`
+20. `RKAP`
+21. `NOTIFIKASI`
+22. `AUDIT_LOG`
+23. `DROPDOWN`
+24. `SYSTEM_META`
+
+Setiap tabel memiliki ID unik, `created_at`, `updated_at`, dan bila tersedia `created_by`/`updated_by`. Contoh pola ID:
+
+- Perusahaan: `PRSH-0001`.
+- Kegiatan umum: `ACT-2026-0001`.
+- Laporan: `LAP-2026-0001`.
+- Laboratorium: `LAB-2026-0001`.
+- Produk/transaksi JID: `PRD-0001` dan `JID-2026-0001`.
+- Pelatihan: `PLT-2026-0001`.
+- Penagihan: `BIL-2026-0001`.
+
+Gunakan ID sebagai foreign key logis antar-sheet. ID yang telah tersimpan tidak boleh berubah walaupun nama perusahaan, kategori, atau tahun diperbaiki. Pisahkan `recordId` internal yang stabil dari ID tampilan/nomor administrasi jika diperlukan.
+
+### 4.5 Master perusahaan dan detail perusahaan
+
+`MASTER_PERUSAHAAN` minimal menyimpan ID perusahaan, nama resmi, nama singkat, jenis instansi, regional, alamat, kontak, status aktif, PIC, dan catatan. Halaman detail perusahaan menampilkan seluruh histori terkait:
+
+- Kegiatan dan laporan.
+- Analisis laboratorium.
+- Lampiran dosis.
+- Pembelian JID.
+- Penagihan dan pembayaran.
+- Pelatihan.
+- Dokumen terkait.
+
+Penggabungan nama perusahaan saat impor harus mendukung alias dengan proses tinjauan; jangan menggabungkan dua perusahaan hanya karena namanya mirip.
+
+### 4.6 Relasi utama
+
+- Satu perusahaan memiliki banyak kegiatan, laporan, analisis laboratorium, transaksi JID, billing, pelatihan, dan dokumen.
+- Satu kegiatan dapat memiliki banyak korespondensi, lokasi, anggota tim/SPJ, laporan, billing, serta dokumen.
+- Satu laporan memiliki banyak checkpoint pada `HISTORI_LAPORAN` dan dapat menghasilkan paling banyak satu billing aktif untuk jenis tagihan yang sama.
+- Satu produk JID memiliki banyak transaksi stok. Posisi stok dihitung dari ledger.
+- Satu pelatihan memiliki banyak penugasan tenaga ahli dan transaksi/reservasi souvenir.
+- `PENAGIHAN` menggunakan `source_type` dan `source_id` yang tervalidasi untuk menghubungkan tagihan lintas modul.
+- `DOKUMEN`, `NOTIFIKASI`, dan `AUDIT_LOG` menggunakan referensi modul + record ID yang tervalidasi dan tidak boleh menyisakan relasi yatim setelah arsip.
+- Definisikan aturan cascade sebagai soft archive; jangan melakukan cascade delete permanen pada histori, transaksi, dokumen, atau audit.
+
+## 5. Delapan tahap administrasi
+
+Setiap tahap memiliki status terisi, waktu perubahan terakhir, daftar field, dan lampiran PDF.
+
+### Tahap 1 — Surat masuk dan balasan
+
+- Nama perusahaan, wajib.
+- Kategori kegiatan.
+- Instansi.
+- Jenis kegiatan, combo yang dapat menerima nilai baru.
+- Status biaya.
+- Regional.
+- Kebun/lokasi utama.
+- Tahun kegiatan.
+- Nomor urut dan ID otomatis.
+- Durasi surat balasan.
+- Rantai korespondensi dinamis.
+
+### Tahap 2 — SPK
+
+- Nomor SPK.
+- Tanggal SPK.
+- Jangka waktu pekerjaan.
+- Jangka waktu pelaksanaan dalam hari.
+- Batas akhir pelaksanaan.
+- Biaya sebelum PPN 11%.
+- PPN 11% otomatis.
+- Jumlah biaya otomatis.
+
+Jika pengguna mengisi biaya sebelum PPN, hitung PPN dan jumlah biaya secara langsung. Jika batas akhir kosong tetapi tanggal SPK dan jumlah hari tersedia, hitung batas akhir secara otomatis.
+
+### Tahap 3 — Surat tugas, kunjungan, dan pelaksanaan
+
+- Nomor surat tugas.
+- Nomor surat kunjungan.
+- Tanggal balasan kunjungan.
+- Perihal kunjungan.
+- Tanggal mulai dan selesai kunjungan.
+- Nomor Intern 3.1.
+- Tanggal permohonan SID.
+- Pencairan SPJ.
+- Daftar lokasi kegiatan.
+- Tim pelaksana/roster.
+
+### Tahap 4 — Laporan dan proses koreksi
+
+Tahap ini menggabungkan administrasi pengiriman laporan dengan monitoring laporan bantuan teknis dan rekomendasi pemupukan:
+
+- ID laporan.
+- Jenis workflow laporan.
+- Nomor surat pengiriman laporan.
+- Tanggal pengiriman laporan.
+- Perihal.
+- Tanggal draft masuk.
+- Nama file draft serta link/path dokumen.
+- Korektor utama dan PIC.
+- Siklus/checkpoint koreksi dinamis; setiap checkpoint menyimpan jenis checkpoint, korektor, tanggal masuk, tanggal selesai, file/link, catatan, dan urutan.
+- Tanggal revisi.
+- Tanggal cetak.
+- Tanggal laporan dikirim.
+- Tanggal NET.
+- Nomor/nama RP27.
+- File NET dan link/path.
+- Folder laporan atau tautan folder.
+- Catatan laporan.
+
+Sediakan dua template workflow:
+
+**Workflow umum Bantuan Teknis:**
+
+`DRAFT MASUK → DIKOREKSI → DIREVISI → DICETAK → DIKIRIM/SELESAI`
+
+**Workflow Rekomendasi Pemupukan:**
+
+`DRAFT MASUK → KOREKTOR 1 → KOREKTOR 2 → CETAK 1 → KOREKTOR 1 CETAK → KOREKTOR 2 CETAK → CETAK NET → NET/RP27 → SIAP PENAGIHAN → DITAGIH → LUNAS`
+
+Template tidak membatasi histori. Pengguna dapat menambah pengulangan koreksi tanpa menghapus checkpoint sebelumnya. Perubahan status harus menghasilkan baris di `HISTORI_LAPORAN`, bukan menimpa histori lama.
+
+Untuk workflow umum, status ringkas dihitung otomatis:
+
+- `BELUM DIMULAI`: belum ada draft masuk.
+- `DRAFT MASUK`: draft masuk terisi, belum ada koreksi selesai.
+- `DIKOREKSI`: sedikitnya satu koreksi selesai, belum direvisi atau dicetak.
+- `DIREVISI`: revisi terisi, belum dicetak.
+- `DICETAK`: cetak terisi, belum dikirim.
+- `SELESAI`: laporan telah dikirim.
+
+Untuk rekomendasi pemupukan, status mengikuti checkpoint terakhir yang valid. Setelah `NET/RP27`, countdown laporan berhenti dan status bisnis otomatis menjadi `NET – SIAP PENAGIHAN`. Nama file NET mengikuti pola `RP27_(Nama Kegiatan_Perusahaan_Kebun)` setelah karakter nama file dibersihkan.
+
+### 5.1 Deadline laporan 30 hari
+
+- Titik awal adalah Tanggal Draft Masuk.
+- `deadline = tanggal draft masuk + 30 hari`.
+- Hitung hari berjalan, hari tersisa, persentase waktu, tanggal deadline, serta status keterlambatan.
+- Hari 0–20: `AMAN`, hijau.
+- Hari 21–25: `PERHATIAN`, kuning.
+- Hari 26–29: `SEGERA SELESAIKAN`, oranye.
+- Hari ke-30 atau lebih dan belum NET/selesai: `TERLAMBAT`, merah.
+- Jika NET/selesai tercapai, hentikan countdown dan tampilkan `SELESAI`, hijau.
+- Reminder dipicu pada hari ke-21, 26, 29, 30, dan setelah 30 hari. Reminder wajib idempotent: kombinasi record, jenis reminder, dan periode hanya boleh dibuat sekali kecuali status berubah atau aturan eskalasi memang mengharuskannya.
+
+Format reminder harus dapat disalin, misalnya:
+
+```text
+REMINDER UPJKP
+
+PT ABC — Kebun A
+Rekomendasi Pemupukan 2027
+Draft masuk: 01 September 2026
+Hari berjalan: 26 hari
+Sisa waktu: 4 hari
+Status terakhir: Korektor 2
+
+PERLU PERCEPATAN PENYELESAIAN.
+```
+
+Jika NET baru tercapai, buat pemberitahuan `LAPORAN SIAP PENAGIHAN` yang memuat perusahaan, kebun, tanggal NET, dan nama dokumen RP27.
+
+### Tahap 5 — Penagihan
+
+- Nomor surat penagihan.
+- Tanggal balasan penagihan.
+- Perihal.
+- Bulan pencatatan pendapatan.
+- Nilai penagihan.
+
+### Tahap 6 — Pembayaran tahap 1
+
+- Lunas tahap 1.
+- Nominal.
+- Nomor invoice.
+- Jatuh tempo faktur.
+- Tanggal bayar.
+- Nomor transaksi Jurnal.id.
+
+### Tahap 7 — Pembayaran tahap 2
+
+- Lunas tahap 2.
+- Nominal.
+- Nomor invoice.
+- Tanggal invoice.
+- Jatuh tempo faktur.
+- Tanggal bayar.
+- Nomor transaksi Jurnal.id.
+
+### Tahap 8 — Honor
+
+- Nilai honor.
+- Tanggal pengajuan.
+- Tanggal keluar.
+- Keterangan.
+
+Nilai uang ditampilkan sebagai Rupiah pada mode baca dan sebagai input teks bermask pemisah ribuan pada mode ubah.
+
+## 6. Komponen data berulang
+
+### 6.1 Rantai korespondensi
+
+Setiap baris berisi nomor urut, jenis surat, nomor surat, tanggal, perihal, dan tombol hapus. Pilihan jenis surat:
+
+- Surat masuk.
+- Balasan surat masuk.
+- Surat persetujuan.
+- Balasan persetujuan.
+- Surat susulan.
+- Surat keluar lainnya.
+
+Surat masuk dan balasan pertama disinkronkan ke field datar yang diperlukan untuk kompatibilitas Excel.
+
+### 6.2 Lokasi kegiatan
+
+Daftar teks bebas karena satu kegiatan dapat mencakup lebih dari satu kebun/lokasi. Saat impor, pisahkan nilai berdasarkan koma atau titik koma dan hilangkan duplikat kosong.
+
+### 6.3 Tim pelaksana
+
+Setiap anggota memiliki:
+
+- Nama, dengan datalist tenaga ahli.
+- Peran: Leader atau Anggota; lebih dari satu leader diperbolehkan.
+- HK.
+- Nominal per HK.
+- Total SPJ otomatis: `HK × nominal per HK`.
+- Panjar, checkbox.
+- Realisasi panjar.
+- Tombol hapus.
+
+Aturan perhitungan:
+
+- Panjar baku Rp1.000.000 per orang.
+- Realisasi panjar hanya aktif jika panjar dicentang.
+- Jika realisasi kosong, gunakan panjar baku.
+- Durasi dinas kegiatan adalah HK terbesar dari seluruh anggota.
+- HPP kegiatan = total SPJ + total realisasi panjar.
+- Jika roster kosong, gunakan field Total SPJ + Total Panjar dari data lama jika tersedia.
+- Tampilkan ringkasan jumlah orang, total HK, durasi dinas, total SPJ, total panjar, realisasi panjar, dan HPP.
+- Sediakan tombol “Samakan HK dengan durasi” jika durasi kegiatan tersedia.
+
+### 6.4 Dokumen dan lampiran
+
+- Drag-and-drop atau pilih berkas PDF sesuai kebijakan ukuran yang dapat dikonfigurasi; nilai awal maksimum 20 MB per berkas.
+- Backend menyalin/memindahkan dokumen ke folder OneDrive yang dikonfigurasi menggunakan nama aman dan struktur folder berbasis tahun, modul, perusahaan, dan activity ID.
+- Database hanya menyimpan document ID, activity ID, nama asli, nama tersimpan, tipe, ukuran, hash/checksum, versi, tahap, waktu unggah, PIC, serta link/path relatif terhadap root dokumen.
+- Tampilkan nama, ukuran, versi, tahap, waktu unggah, Buka, Buka Lokasi, dan Hapus/Arsipkan.
+- Jangan simpan PDF sebagai data URL di workbook, browser storage, atau repository GitHub.
+- Penggantian file membuat versi baru; versi lama tetap tercatat dan dapat dipulihkan sesuai kebijakan retensi.
+- Penghapusan harus dikonfirmasi dan secara default berupa arsip/soft delete. Penghapusan permanen memerlukan hak khusus dan audit trail.
+- Lampiran tidak boleh hilang ketika data Excel diimpor ulang selama ID relasinya dapat dipadankan.
+
+## 7. Navigasi utama
+
+Gunakan sidebar dengan Dashboard sebagai halaman lintas unit dan tepat empat subbagian resmi:
+
+- **DASHBOARD**
+  - UPJKP Monitoring Center.
+  - Daftar pekerjaan.
+- **REKOMENDASI PEMUPUKAN & JASA INFORMASI DIGITAL**
+  - Monitoring laporan rekomendasi.
+  - Analisis laboratorium.
+  - Lampiran dosis.
+  - JID dan inventory.
+  - Katalog produk.
+- **BANTUAN TEKNIS**
+  - Daftar kegiatan bantuan teknis.
+  - Monitoring laporan bantuan teknis.
+  - Regional dan tahun.
+  - Tim pelaksana dan SPJ.
+- **PELATIHAN**
+  - Kegiatan pelatihan.
+  - Kalender.
+  - Tenaga ahli.
+  - Souvenir.
+- **ADMINISTRASI**
+  - Catat kegiatan.
+  - Perusahaan.
+  - Surat dan korespondensi.
+  - Dokumen.
+  - Billing Center.
+  - RKAP dan keuangan.
+  - Impor/ekspor.
+  - Validasi data.
+  - Audit log.
+  - Backup/restore.
+
+Badge menampilkan jumlah item relevan, misalnya pekerjaan aktif, laporan proses, notifikasi urgent, dokumen, invoice jatuh tempo, dan stok kritis.
+
+Sidebar memuat brand aplikasi, subjudul “Administrasi dan monitoring pekerjaan konsultansi”, indikator neon, status penyimpanan, jumlah record, dan tanggal impor terakhir.
+
+Jika belum ada record, tampilkan halaman sambutan dengan tombol “Catat kegiatan” dan “Impor dari Excel”.
+
+## 8. Dasbor utama
+
+Dasbor harus menyajikan informasi operasional dan keuangan secara terpadu.
+
+### 8.1 Header dan filter global
+
+- Judul “Dasbor {tahun}”.
+- Pemilih tahun dan opsi Semua Tahun.
+- Filter subbagian, kategori, regional, status biaya, status laporan, dan status pembayaran.
+- Tombol Impor Excel, Atur RKAP, dan Catat kegiatan.
+- Semua kartu, grafik, dan tabel mengikuti filter aktif.
+- Sediakan tombol Reset filter.
+
+### 8.2 Pencarian cepat
+
+Cari berdasarkan perusahaan, ID, nomor surat, kegiatan, lokasi, petugas, korektor, atau regional. Sediakan chip cepat:
+
+- Laporan masih proses.
+- Laporan selesai.
+- Lunas.
+- Bayar sebagian.
+- Menunggu pembayaran.
+- Belum ditagih.
+
+Klik hasil atau chip untuk membuka daftar pekerjaan yang sudah tersaring.
+
+### 8.3 Statistik keseluruhan
+
+Tampilkan minimal:
+
+- Total kegiatan aktif.
+- Total laporan.
+- Laporan selesai/dikirim dan laporan NET.
+- Laporan masih proses.
+- Laporan mendekati deadline.
+- Laporan terlambat.
+- Laporan NET siap penagihan.
+- Persentase laporan selesai.
+- Pendapatan.
+- HPP perjalanan dinas.
+- Laba kotor.
+- Margin kotor.
+- Capaian RKAP.
+- Analisis laboratorium aktif.
+- Total sampel/KCD.
+- Kegiatan pelatihan mendatang.
+- Pendapatan JID.
+- Nilai siap tagih dan nilai piutang.
+- Jumlah produk JID serta souvenir dengan stok kritis.
+
+Rumus:
+
+- `pendapatan(record) = nilai penagihan`, jika kosong gunakan `jumlah biaya`.
+- `HPP(record) = total SPJ roster + total realisasi panjar`; jika roster kosong gunakan nilai fallback lama.
+- `laba = pendapatan − HPP`.
+- `margin = laba / pendapatan × 100`, dan 0 jika pendapatan 0.
+- `capaian RKAP = pendapatan / target RKAP × 100`, dan 0 jika RKAP 0.
+- Persentase laporan selesai = jumlah status `SELESAI` dibagi jumlah kegiatan yang memiliki data laporan, bukan seluruh record kosong.
+
+### 8.4 Notifikasi tenggat
+
+Kelola dua jenis tenggat yang berbeda dan jangan mencampur rumusnya:
+
+1. Tenggat pelaksanaan berdasarkan field Batas Akhir Pelaksanaan atau Tanggal SPK + jangka waktu pelaksanaan.
+2. SLA laporan 30 hari berdasarkan Tanggal Draft Masuk dan berhenti ketika NET/selesai.
+
+Tampilkan kegiatan yang mendekati tenggat atau terlambat. Urutkan dari paling mendesak, tampilkan maksimal enam baris per kelompok, lalu ringkas sisanya.
+
+- “Sisa 5 hari”.
+- “Jatuh tempo hari ini”.
+- “Lewat 3 hari”.
+
+Gunakan merah untuk terlambat. Untuk tenggat pelaksanaan, kegiatan dianggap selesai jika laporan telah dikirim atau pekerjaan ditandai selesai. Untuk SLA laporan, countdown berhenti ketika NET atau laporan selesai.
+
+### 8.5 Kartu subbagian dan kategori
+
+Tampilkan empat kartu subbagian utama:
+
+1. Rekomendasi Pemupukan & Jasa Informasi Digital.
+2. Bantuan Teknis.
+3. Pelatihan.
+4. Administrasi.
+
+Setiap kartu menampilkan metrik yang relevan:
+
+- Jumlah kegiatan.
+- Jumlah laporan selesai.
+- Persentase selesai.
+- Total pendapatan.
+- Meter capaian terhadap RKAP.
+
+Kartu RP & JID juga menampilkan ringkasan terpisah untuk laporan rekomendasi, sampel laboratorium, penjualan JID, dan stok kritis. Kartu Administrasi menampilkan siap tagih, piutang, dokumen, serta masalah validasi. Klik kartu membuka halaman subbagian dengan filter aktif.
+
+Di bawah kartu subbagian, sediakan rincian kategori BT, RP, TR, JID, dan Lainnya untuk kebutuhan analisis tanpa mengubah struktur empat subbagian.
+
+### 8.6 Grafik bulanan
+
+Grafik batang 12 bulan dengan:
+
+- Pendapatan, teal.
+- HPP, magenta.
+- RKAP, outline/bergaris.
+- Tooltip angka lengkap per bulan.
+- Legenda.
+- Pemilih basis bulan: bulan pencatatan pendapatan sebagai bawaan, bulan tanggal SPK, bulan surat masuk, atau bulan pengiriman laporan.
+
+### 8.7 Rekap bulanan per kategori
+
+Tabel dalam juta rupiah dengan 12 bulan, Setahun, RKAP, dan Capaian. Tambahkan baris:
+
+- Bantuan Teknis.
+- Rekomendasi Pemupukan.
+- Pelatihan.
+- Jasa Informasi Digital.
+- Lainnya jika ada.
+- HPP perjalanan dinas.
+- Laba kotor.
+
+Nilai negatif ditampilkan merah. Baris kategori dapat diklik untuk membuka daftar pekerjaan tersaring.
+
+### 8.8 Ringkasan regional dan tahun
+
+Tampilkan tabel/matriks dinamis:
+
+| Regional | Total | Draft Masuk | Dikoreksi | Direvisi | Dicetak | Selesai | % Selesai |
+|---|---:|---:|---:|---:|---:|---:|---:|
+
+Tambahkan matriks jumlah kegiatan per tahun × regional dan matriks persentase laporan selesai per tahun × regional. Semua angka dihitung dari record aktif, bukan nilai contoh yang ditanam di kode.
+
+Data historis yang mungkin muncul saat impor antara lain 2024, 2025, dan 2026, tetapi aplikasi wajib mendukung tahun lain secara dinamis.
+
+### 8.9 Panel Perlu Perhatian
+
+Prioritaskan dan urutkan:
+
+1. Laporan terlambat.
+2. Laporan memasuki hari ke-26 sampai 30.
+3. Laporan NET yang belum ditagih.
+4. Invoice jatuh tempo atau belum dibayar.
+5. Sampel laboratorium terlalu lama diproses.
+6. Stok produk JID rendah.
+7. Jadwal pelatihan terdekat.
+8. Konflik jadwal tenaga ahli.
+9. Stok souvenir tidak mencukupi kebutuhan pelatihan.
+
+Setiap item dapat diklik menuju record terkait dan menampilkan alasan, usia, prioritas, serta tindakan yang disarankan.
+
+### 8.10 Notification Center
+
+Tambahkan ikon lonceng dengan badge unread. Kategori notifikasi: `URGENT`, `REMINDER`, `BILLING`, `STOCK`, `TRAINING`, dan `LAB`.
+
+- Notifikasi memiliki ID, kategori, tingkat prioritas, judul, isi, waktu dibuat, `read_at`, sumber tabel, sumber ID, dan link halaman tujuan.
+- Dapat ditandai dibaca/belum dibaca secara individual atau massal.
+- Pembuatan notifikasi otomatis harus idempotent dan dapat diaudit.
+- Contoh: laporan terlambat, laporan hari ke-26, NET siap tagih, invoice jatuh tempo, stok AWS tersisa dua, dan pelatihan H-3.
+
+## 9. Halaman daftar pekerjaan
+
+- Filter subbagian, kategori, regional, jenis kegiatan, status biaya, tahun, status laporan, status bayar, korektor, dan pencarian.
+- Pertahankan filter dan pencarian ketika pengguna berpindah halaman.
+- Kolom: Kategori, ID, Regional, Perusahaan, Kebun/Lokasi, Jenis, Surat masuk, Leader, Nilai, HPP, Tahun/Bulan, Status laporan, Status bayar, tahapan, dan jumlah PDF.
+- Tahapan divisualisasikan sebagai rail delapan titik: abu-abu kosong, biru terisi, teal memiliki PDF.
+- Stripe kiri baris mengikuti warna kategori.
+- Klik baris membuka rincian.
+- Tampilkan 60 baris pertama dengan tombol “Tampilkan 60 lagi”.
+- Sediakan pengurutan berdasarkan tanggal terbaru, tenggat, perusahaan, nilai, regional, dan progres laporan.
+
+Status bayar diturunkan otomatis:
+
+- `LUNAS`: seluruh tahap pembayaran yang relevan telah lunas atau total pembayaran mencapai nilai tagihan.
+- `BAYAR SEBAGIAN`: ada pembayaran tetapi belum memenuhi tagihan.
+- `MENUNGGU PEMBAYARAN`: penagihan sudah ada tetapi belum dibayar.
+- `BELUM DITAGIH`: belum ada penagihan.
+
+## 10. Halaman monitoring laporan
+
+Halaman khusus untuk kerja operasional korektor:
+
+- Tab workflow Umum dan Rekomendasi Pemupukan.
+- Ringkasan jumlah Belum Dimulai, Draft Masuk, tiap checkpoint koreksi/cetak, NET, Siap Penagihan, Ditagih, Lunas, dan Terlambat.
+- Tabel berkolom ID, regional, perusahaan, kebun/lokasi, kegiatan, petugas, draft masuk, korektor/checkpoint terakhir, hari berjalan, sisa hari, deadline, revisi/cetak/NET, status bisnis, folder laporan, PIC, dan catatan.
+- Filter tahun, regional, korektor, status, kategori, dan pencarian.
+- Sorot laporan berdasarkan kategori deadline 30 hari dan laporan yang terlalu lama pada satu checkpoint.
+- Tampilkan progress laporan sebagai timeline/checkpoint. Histori tidak boleh hilang ketika status berubah.
+- Klik status membuka langsung accordion Tahap 4 pada halaman rincian.
+- Tombol “Buka folder” hanya aktif jika tautan folder tersedia.
+- Jangan mencoba membuka path lokal secara otomatis; lakukan hanya setelah klik pengguna.
+- Sediakan pembuatan pesan reminder yang dapat disalin. Pengiriman ke pihak luar tidak dilakukan tanpa konfigurasi dan otorisasi terpisah.
+
+## 11. Halaman regional dan tahun
+
+- Kartu tiap regional berisi total, selesai, proses, persentase selesai, pendapatan, dan HPP.
+- Tabel per tahun × regional.
+- Grafik batang progres per regional.
+- Klik regional atau tahun menerapkan filter global dan membuka daftar pekerjaan.
+- Sertakan baris dan kolom total.
+
+## 12. Halaman rincian pekerjaan
+
+- Header menampilkan perusahaan, ID, regional, jenis, jumlah tahap terisi, jumlah lampiran, kategori, status biaya, status laporan, dan status bayar.
+- Delapan accordion tahap dengan nomor, judul, catatan, badge Terisi/Kosong, dan jumlah PDF.
+- Accordion mode baca secara default.
+- Tombol “Ubah data tahap ini” membuka mode edit dengan Simpan dan Batal.
+- Tahap 1 memuat korespondensi, Tahap 3 memuat lokasi dan roster, Tahap 4 memuat proses koreksi laporan.
+- Dropzone PDF tersedia pada setiap tahap.
+- Tombol hapus record melakukan soft delete/arsip dan harus meminta konfirmasi yang menyebut ID dan perusahaan. Penghapusan permanen hanya untuk administrator dan wajib tercatat di audit log.
+
+## 13. Wizard catat kegiatan
+
+- Rail delapan tahap dapat dilompati.
+- Hanya Nama Perusahaan yang wajib.
+- Validasi langsung dan mudah dipahami.
+- Nomor urut melanjutkan nomor terbesar pada kategori yang sama.
+- ID diperbarui ketika kategori atau instansi berubah, tetapi setelah record pertama kali disimpan, `recordId` internal tidak berubah.
+- Cegah duplikasi ID tampilan; jika terjadi, tambahkan nomor berikutnya.
+- Lampiran PDF dapat ditambahkan sebelum record disimpan sebagai draf temporer backend, lalu dipindahkan ke lokasi OneDrive final setelah penyimpanan record berhasil.
+- Sediakan Simpan draf, Simpan dan buka rincian, serta Batal.
+
+## 14. Halaman dokumen
+
+- Daftar seluruh lampiran lintas pekerjaan.
+- Kolom nama berkas, pekerjaan, perusahaan, regional, tahap, ukuran, dan waktu unggah.
+- Tombol Buka, Buka Lokasi, Riwayat Versi, dan Arsipkan.
+- Diurutkan terbaru terlebih dahulu.
+- Ringkasan jumlah berkas dan total ukuran.
+- Filter tahap, regional, kategori, dan pencarian.
+
+## 15. Halaman Atur RKAP
+
+- Grid kategori × 12 bulan untuk setiap tahun.
+- Input menggunakan satuan juta rupiah: nilai `250` berarti Rp250.000.000.
+- Tampilkan total per kategori, per bulan, dan setahun.
+- Simpan data RKAP terpisah berdasarkan tahun.
+- Perubahan harus langsung tercermin pada dasbor.
+
+## 16. Impor Excel
+
+Aplikasi harus mendukung dua format sumber secara otomatis.
+
+### 16.1 Format A — Basis Data Administrasi
+
+- Nama file umumnya `Data_base_Admin.xlsx`.
+- Pilih sheet yang namanya mengandung “admin” atau “data”; jika tidak ditemukan gunakan sheet pertama yang bukan sheet dropdown.
+- Cari baris header secara fleksibel, tidak selalu menganggap header berada pada posisi yang sama.
+- Petakan kolom berdasarkan nama header yang dinormalisasi, bukan hanya posisi huruf kolom.
+- Lewati baris tanpa nama perusahaan.
+- Konversi serial tanggal Excel dan string tanggal valid ke `YYYY-MM-DD`.
+- Abaikan nilai galat seperti `#VALUE!`, `#REF!`, `#N/A`, tanda `-`, dan string kosong.
+- Pecah Leader dan Tim berdasarkan koma menjadi roster.
+- Pecah lokasi berdasarkan koma atau titik koma.
+- Ubah surat masuk dan balasan menjadi rantai korespondensi.
+- Pembayaran bernilai lebih dari nol dapat ditandai lunas jika data sumber menunjukkan pelunasan.
+- Sheet `dropdown` mengisi pilihan Kegiatan, Instansi, Keterangan, Nama-Nama Tenaga Ahli, Status Pembayaran, Jenis Kegiatan, Asal Kelti, Korektor, dan PIC UPJKP.
+
+### 16.2 Format B — Monitoring Laporan Bantuan Teknis
+
+- Nama file umumnya mengandung `Monitoring Bantuan Teknis`.
+- Abaikan sheet `RINGKASAN` sebagai sumber record karena nilainya dihitung ulang.
+- Baca sheet `Data R1`, `Data R2`, `Data R3`, `Data R4`, `Data R5`, `Data R6`, `Data R7`, `Data R4P`, dan `Data SW` jika tersedia.
+- Turunkan regional dari nama sheet, lalu izinkan nilai kolom regional menggantikannya jika memang ada.
+- Struktur lama yang perlu dipetakan:
+
+| Kolom | Data |
+|---|---|
+| A | Nomor |
+| B | Perusahaan |
+| C | Kebun/Lokasi |
+| D | Petugas |
+| E | Tanggal kunjungan |
+| F | Kegiatan |
+| G | Draft masuk |
+| H | Draft korektor |
+| I | Korektor |
+| J–Y | Siklus korektor lanjutan |
+| Z | Revisi |
+| AA | Cetak |
+| AB | Sudah dikirim |
+| AC | Status lama |
+| AD | Tahun |
+| AE | Folder laporan |
+| AF | Catatan |
+
+- Jangan mempercayai status lama jika tidak sesuai tanggal; hitung ulang status laporan berdasarkan aturan aplikasi.
+- Sheet `INDEX LAPORAN`, jika ada, dapat diimpor sebagai referensi folder tetapi bukan sebagai kegiatan baru.
+
+### 16.3 Alur impor dan penggabungan
+
+- Tampilkan pratinjau sebelum menulis data: format terdeteksi, jumlah sheet, jumlah baris valid, jumlah duplikat, jumlah error, serta contoh lima baris.
+- Sediakan dua pilihan: “Migrasikan sebagai basis data baru” dan “Gabungkan dengan data yang ada”. Opsi pertama wajib menampilkan peringatan, membuat backup terverifikasi, dan memerlukan konfirmasi eksplisit; jangan langsung menimpa database master.
+- Pada mode gabung, padankan record dengan prioritas: `recordId`, ID kegiatan, kombinasi perusahaan + kegiatan + tanggal surat masuk, lalu perusahaan + lokasi + tanggal kunjungan.
+- Jika satu kandidat tidak pasti, tandai untuk ditinjau dan jangan menimpa otomatis.
+- Gabungkan field kosong tanpa menghapus field lama yang sudah terisi, kecuali pengguna memilih bahwa file impor menjadi sumber utama.
+- Dokumen tetap aman pada kedua mode jika record lama masih memiliki pasangan.
+- Sebelum komit, validasi semua record, buat backup, lalu lakukan write atomik. Jika penyimpanan atau validasi hasil gagal, pertahankan database lama dan pulihkan dari file sementara/backup bila diperlukan.
+- Tampilkan hasil impor: dibuat, diperbarui, dilewati, perlu tinjauan, dan gagal.
+
+## 17. Ekspor Excel
+
+Ekspor workbook laporan bernama `Dashboard_UPJKP_PPKS_YYYY-MM-DD.xlsx` tanpa mengubah database master. Minimal sertakan sheet:
+
+1. **Database** — satu baris per kegiatan, seluruh identitas dan delapan tahap utama.
+2. **Monitoring Laporan** — format yang kompatibel dengan kolom monitoring lama, termasuk regional, korektor, revisi, cetak, dikirim, status, folder, dan catatan.
+3. **Tim & SPJ** — satu baris per anggota.
+4. **Korespondensi** — satu baris per surat.
+5. **Dokumen** — metadata dan link relatif dokumen, bukan isi binary.
+6. **Ringkasan Regional** — total dan tahapan laporan per regional.
+7. **Ringkasan Tahun** — jumlah dan persentase selesai per tahun × regional.
+8. **RKAP** — target per tahun, kategori, dan bulan.
+9. **Dropdown** — seluruh daftar pilihan yang digunakan aplikasi.
+10. **Analisis Laboratorium** — daun, tanah, jumlah KCD, umur, status, dan PIC.
+11. **Lampiran Dosis** — metadata, status verifikasi, dan link/path relatif.
+12. **Produk JID** — master produk dan posisi stok.
+13. **Transaksi JID** — seluruh mutasi stok dan penjualan.
+14. **Penagihan** — billing lintas modul dan aging piutang.
+15. **Pelatihan** — kegiatan dan jadwal.
+16. **Tenaga Ahli** — master dan relasi jadwal.
+17. **Souvenir** — master, mutasi, dan posisi stok.
+18. **Audit Log** — dapat dibatasi berdasarkan periode dan hak akses.
+
+Gunakan header yang jelas, freeze pane jika didukung, format tanggal yang konsisten, format angka tanpa simbol teks, dan lebar kolom yang layak. Rumus ringkasan boleh ditulis sebagai nilai hasil hitung agar workbook tetap mudah dibuka lintas aplikasi.
+
+## 18. Ketentuan status dan kualitas data
+
+- Status tahap administrasi diturunkan dari field penting yang terisi.
+- Status laporan selalu dihitung dari tanggal proses, bukan diketik manual.
+- Status pembayaran selalu diturunkan dari tagihan dan realisasi pembayaran.
+- Tahun kegiatan diambil dari field Tahun; jika kosong gunakan tanggal kunjungan, tanggal SPK, atau tanggal surat masuk secara berurutan.
+- Jangan menghitung baris kosong sebagai kegiatan.
+- Deduplicasi nama orang, lokasi, dan dropdown secara case-insensitive, tetapi pertahankan ejaan tampilan yang pertama.
+- Data contoh historis tidak boleh di-hardcode sebagai hasil tetap. Semua ringkasan dihitung dari data yang sedang tersimpan.
+
+## 19. Detail pengalaman pengguna
+
+- Spinner ketika memuat penyimpanan awal dan saat mengimpor workbook besar.
+- Toast singkat di bawah tengah layar untuk simpan, impor, ekspor, hapus, dan kegagalan.
+- Dialog konfirmasi untuk arsip record/dokumen, restore, dan pengosongan data demo/cache.
+- Placeholder titik tengah `·` pada sel tabel dengan nilai nol atau kosong.
+- Angka besar pada kartu disingkat: `Rp1,2 M` dan `Rp250 jt`.
+- Tabel tetap menyediakan tooltip atau judul untuk nilai penuh.
+- Empty state menjelaskan tindakan selanjutnya.
+- Tombol tidak boleh aktif ganda selama proses asinkron.
+- Perubahan yang belum disimpan harus diperingatkan ketika pengguna berpindah halaman.
+- State filter, pencarian, pengurutan, dan basis bulan tetap dipertahankan selama sesi aplikasi.
+
+## 20. Arsip dan keamanan data
+
+- Jangan menyediakan tombol untuk mengosongkan database produksi secara massal.
+- Tombol “Kosongkan data demo/cache” hanya muncul dalam mode demo/development, tidak boleh menyentuh database master atau dokumen OneDrive, dan meminta konfirmasi dua langkah.
+- Record bisnis menggunakan soft delete/arsip. Restore harus tersedia bagi pengguna berwenang.
+- Perubahan destruktif, migrasi skema, restore, dan penghapusan permanen harus memerlukan otorisasi, backup terverifikasi, serta audit trail.
+- Jangan menghapus apa pun jika target belum tervalidasi atau salah satu operasi penyimpanan gagal.
+
+## 21. Kriteria penerimaan
+
+Aplikasi dianggap selesai jika:
+
+1. Dapat membuat, membaca, mengubah, mengarsipkan, dan memulihkan satu kegiatan beserta delapan tahapnya.
+2. Dapat menghitung status laporan, status bayar, pendapatan, HPP, laba, margin, dan capaian RKAP dengan benar.
+3. Dasbor dapat difilter berdasarkan subbagian, tahun, kategori, regional, status laporan, dan status pembayaran.
+4. Ringkasan regional dan tahun selalu konsisten dengan daftar pekerjaan.
+5. Monitoring laporan menampilkan progres draft sampai laporan dikirim.
+6. Roster menghitung SPJ, panjar, durasi, dan HPP sesuai aturan.
+7. Dokumen dapat ditambah, dibuka, diberi versi, dan diarsipkan tanpa hilang saat impor yang berhasil dipadankan.
+8. Kedua format Excel lama dapat dideteksi dan dipratinjau sebelum impor.
+9. Mode gabung tidak menimpa data terisi tanpa aturan konflik yang jelas.
+10. Ekspor menghasilkan seluruh sheet yang ditentukan tanpa memodifikasi master.
+11. Modul laboratorium, lampiran dosis, JID, Billing Center, pelatihan, tenaga ahli, souvenir, notifikasi, audit, dan backup berfungsi sesuai fasenya.
+12. Aplikasi responsif, bisa digunakan dengan keyboard, dan tidak menghasilkan error frontend/backend pada alur utama.
+13. Seluruh mutasi database memiliki backup, validasi, log, dan audit yang memadai.
+14. Daily monitor bersifat idempotent dan aman saat file OneDrive terkunci.
+
+## 22. Arahan implementasi
+
+- Pisahkan model/skema, repository Excel, service bisnis, API, validasi, backup, audit, impor-ekspor, reminder, frontend state/router, komponen render, dan event handler.
+- Gunakan fungsi murni untuk perhitungan status, deadline, stok, dan agregasi agar mudah diuji.
+- Buat migrasi skema/versioning berdasarkan `SYSTEM_META.schema_version`. Migrasi tidak boleh mengubah ID existing atau menghapus kolom/histori tanpa prosedur migrasi eksplisit dan backup.
+- Tambahkan data demo hanya melalui perintah/tombol eksplisit “Muat data contoh”; jangan memuat data demo otomatis.
+- Gunakan perusahaan fiktif seperti PT Agro Sejahtera, PT Sawit Makmur, PT Perkebunan Nusantara, dan PT Palma Lestari, serta beri label jelas `DEMO/SAMPLE DATA`.
+- Sertakan komentar seperlunya pada logika pencocokan impor, transaksi workbook, perhitungan HPP, deadline, stok, status laporan, billing, dan pembentukan workbook.
+- Jangan hanya memberikan pseudocode, kerangka kosong, potongan kode, atau tutorial. Jika workspace tersedia, implementasikan perubahan langsung sesuai fase aktif, jalankan pengujian, dan dokumentasikan hasilnya.
+
+## 23. Modul analisis laboratorium
+
+Buat halaman **Monitoring Analisis Laboratorium** dengan dua kategori awal:
+
+- Analisis Daun.
+- Analisis Tanah.
+
+Field minimal:
+
+- ID analisis.
+- Company ID dan nama perusahaan.
+- Kebun/lokasi.
+- Jenis analisis.
+- Jumlah KCD.
+- Tahun.
+- Tanggal sampel masuk.
+- Umur sampel dalam hari, dihitung otomatis.
+- Status.
+- Tanggal mulai proses.
+- Tanggal selesai.
+- PIC.
+- Catatan.
+- Relasi dokumen bila ada.
+
+Status: `SAMPEL MASUK`, `PROSES`, dan `SELESAI`. Dasbor modul menampilkan total KCD, KCD daun, KCD tanah, dalam proses, selesai, umur sampel, perusahaan, serta tren sampel per bulan/tahun. Ambang “terlalu lama” harus dapat dikonfigurasi dan menghasilkan notifikasi tanpa mengubah status secara sembarang.
+
+## 24. Modul lampiran dosis pemupukan
+
+Buat halaman **Lampiran Dosis Pemupukan** dengan field:
+
+- ID lampiran dosis.
+- Company ID dan nama perusahaan.
+- Kebun.
+- Tahun rekomendasi.
+- Activity/Report ID terkait.
+- Document ID, nama file, serta link/path relatif OneDrive.
+- Tanggal unggah.
+- PIC.
+- Status.
+- Catatan verifikasi.
+
+Status: `BELUM TERSEDIA`, `SUDAH UPLOAD`, dan `TERVERIFIKASI`.
+
+Sediakan aksi Pilih/Upload File, Lihat File, Buka Lokasi File, Verifikasi, serta Riwayat Versi. Binary dokumen tetap berada di OneDrive dan tidak masuk GitHub atau workbook.
+
+## 25. Modul Jasa Informasi Digitalisasi (JID)
+
+### 25.1 Master produk
+
+Produk awal:
+
+1. Ombrometer.
+2. Gelas Ukur.
+3. Automatic Weather Station (AWS).
+
+Master produk minimal menyimpan Product ID, nama, foto/link foto, deskripsi, spesifikasi, harga, satuan, minimum stok, serta status aktif. Produk baru dapat ditambahkan dari UI tanpa mengubah source code utama.
+
+### 25.2 Inventory dan transaksi
+
+Jangan menyimpan stok akhir sebagai angka bebas. Stok tersedia selalu dihitung dari ledger mutasi:
+
+`stok awal + pengadaan + penyesuaian masuk − penjualan − penyesuaian keluar = stok tersedia`
+
+Setiap mutasi menyimpan Transaction ID, Product ID, jenis mutasi, tanggal, jumlah, harga/nilai bila relevan, perusahaan, Activity/Billing ID, referensi dokumen, PIC, catatan, dan audit metadata. Cegah stok negatif kecuali pengguna berwenang memberi override dengan alasan yang diaudit.
+
+Dasbor JID menampilkan stok tersedia, barang masuk, barang terjual, produk stok rendah, pendapatan, penjualan bulanan/tahunan, penjualan per perusahaan, belum ditagih, sudah ditagih, belum dibayar, dan sudah lunas.
+
+### 25.3 Katalog produk
+
+Halaman **Katalog Jasa Informasi Digitalisasi** menampilkan kartu produk dengan foto, nama, spesifikasi singkat, harga, dan status stok `TERSEDIA`, `TERBATAS`, atau `HABIS`. Katalog harus profesional, responsif, dan bersumber dari master produk.
+
+## 26. UPJKP Billing Center
+
+Buat satu modul penagihan terpusat untuk semua sumber:
+
+- Laporan/rekomendasi.
+- Bantuan teknis.
+- JID.
+- Pelatihan.
+- Jasa lain yang ditambahkan kemudian.
+
+Field minimal:
+
+- Billing ID.
+- Company ID, perusahaan, dan kebun jika relevan.
+- Jenis sumber dan Activity ID.
+- Nilai tagihan.
+- Tanggal siap tagih.
+- Nomor serta tanggal invoice.
+- Jatuh tempo.
+- Status.
+- Total pembayaran.
+- Tanggal pembayaran terakhir.
+- Nomor transaksi Jurnal.id bila ada.
+- PIC dan catatan.
+
+Status bisnis: `BELUM SIAP TAGIH`, `SIAP TAGIH`, `INVOICE TERBIT`, `MENUNGGU PEMBAYARAN`, `BAYAR SEBAGIAN`, `JATUH TEMPO`, dan `LUNAS`. Status diturunkan dari tanggal, invoice, nilai tagihan, dan transaksi pembayaran; perubahan manual harus dibatasi serta diaudit.
+
+Tampilkan Total Siap Tagih, Total Invoice, Total Piutang, Total Lunas, serta aging piutang dengan kelompok 0–30, 31–60, 61–90, dan lebih dari 90 hari. NET/RP27 baru dapat membuat billing draft secara idempotent agar satu laporan tidak menghasilkan tagihan ganda.
+
+## 27. Modul kegiatan pelatihan
+
+Field minimal:
+
+- Training ID.
+- Company ID dan nama perusahaan.
+- Nama kegiatan.
+- Lokasi.
+- Tanggal/waktu mulai dan selesai.
+- Jumlah peserta.
+- PIC.
+- Status.
+- Catatan.
+- Relasi Billing ID.
+- Relasi jadwal tenaga ahli.
+- Relasi pemakaian souvenir.
+
+Status: `RENCANA`, `DIJADWALKAN`, `PERSIAPAN`, `SIAP`, `PELAKSANAAN`, dan `SELESAI`.
+
+Sediakan tampilan daftar dan kalender bulanan/mingguan. Perubahan tanggal otomatis memeriksa konflik tenaga ahli dan kecukupan souvenir, tetapi tidak mengubah transaksi stok tanpa konfirmasi.
+
+## 28. Master dan jadwal tenaga ahli
+
+Master `TENAGA_AHLI` minimal memuat ID, nama, bidang keahlian, status aktif, kontak bila diperlukan, serta catatan. Jadwal tenaga ahli disimpan pada tabel relasi tersendiri dengan Activity/Training ID, peran, tanggal/waktu mulai, tanggal/waktu selesai, dan status penugasan.
+
+Sistem mendeteksi:
+
+- Tersedia.
+- Tidak tersedia/nonaktif.
+- Sudah memiliki kegiatan.
+- Konflik atau tumpang tindih jadwal.
+
+Jangan memblokir seluruh proses tanpa penjelasan, tetapi jangan mengizinkan double booking tanpa warning yang jelas. Override memerlukan alasan dan masuk audit log.
+
+## 29. Inventory souvenir pelatihan
+
+Simpan master item souvenir serta ledger transaksi, bukan hanya stok akhir. Field minimal meliputi Item ID, nama, satuan, minimum stok, stok awal, jenis mutasi, jumlah, tanggal, Training ID, PIC, dan catatan.
+
+`stok tersedia = stok awal + pengadaan + penyesuaian masuk − pemakaian − penyesuaian keluar`
+
+Hubungkan kebutuhan souvenir dengan jumlah peserta. Contoh:
+
+- Peserta 35 dan stok 42 → `CUKUP`.
+- Peserta 50 dan stok 42 → `KURANG 8`.
+
+Kebutuhan dan reservasi tidak langsung dianggap sebagai pemakaian. Mutasi pemakaian baru dibuat saat dikonfirmasi agar stok dapat diaudit.
+
+## 30. Pencarian, filter, sort, dan pagination
+
+Semua tabel utama mendukung:
+
+- Pencarian teks.
+- Filter perusahaan, kebun, regional, tahun, status, PIC, kategori, dan rentang tanggal sesuai konteks.
+- Pengurutan naik/turun.
+- Pagination dengan ukuran halaman yang dapat dipilih.
+- Tombol Reset Filter.
+- Filter tersimpan selama sesi dan tercermin pada URL/state agar tombol kembali browser berfungsi.
+- Ekspor mengikuti filter aktif dengan pemberitahuan cakupan data.
+
+## 31. Audit trail
+
+Semua perubahan penting menghasilkan audit log append-only:
+
+- Audit ID dan timestamp.
+- User/PIC atau identitas proses otomatis.
+- Modul, tabel, dan record ID.
+- Jenis tindakan: create, update, status change, archive, restore, import, export, backup, login/config change, dan automation.
+- Field yang berubah.
+- Nilai sebelumnya dan nilai baru dalam representasi aman.
+- Alasan/komentar bila diwajibkan.
+- Correlation ID untuk satu transaksi yang menyentuh beberapa tabel.
+
+Audit log tidak boleh ikut terhapus ketika record diarsipkan. Jangan mencatat credential, isi binary, atau data sensitif yang tidak diperlukan.
+
+## 32. Backup, restore, dan proteksi database
+
+Sebelum database dimodifikasi:
+
+1. Validasi struktur dan relasi database.
+2. Pastikan file tidak terkunci atau sedang mengalami konflik sinkronisasi.
+3. Buat backup.
+4. Lakukan update secara atomik.
+5. Buka ulang dan validasi hasil.
+6. Simpan log serta audit transaksi.
+
+Struktur backup:
+
+```text
+backup/
+└── YYYY/
+    └── MM/
+        └── UPJKP_DB_YYYY-MM-DD_HHmm.xlsx
+```
+
+- Backup dan database master disimpan di lokasi OneDrive yang dikonfigurasi, bukan repository.
+- Sediakan konfigurasi retensi, misalnya backup harian, mingguan, dan bulanan. Penghapusan backup kadaluwarsa dilakukan hanya setelah validasi cakupan retensi dan dicatat dalam log.
+- Restore harus memiliki mode pratinjau, memvalidasi checksum/skema, membackup keadaan saat ini, lalu meminta konfirmasi eksplisit.
+- Jangan menghapus database, mengosongkan sheet, mengganti workbook tanpa backup, menghapus histori, mengubah ID existing, atau mengubah struktur secara diam-diam.
+- Jika tindakan berpotensi merusak data dan belum jelas diotorisasi, hentikan tindakan dan minta konfirmasi.
+
+## 33. Validasi data
+
+Buat validator yang mendeteksi dan menampilkan dengan jelas:
+
+- ID duplikat dan foreign key tidak ditemukan.
+- Tanggal tidak valid.
+- Tanggal checkpoint lebih awal dari draft atau urutannya tidak logis.
+- NET tanpa draft.
+- Jumlah KCD negatif.
+- Stok JID/souvenir negatif.
+- Transaksi tanpa perusahaan atau produk.
+- Invoice tanpa Activity ID/sumber.
+- Pembayaran sebelum invoice.
+- Nilai pembayaran melebihi tagihan tanpa alasan.
+- Pelatihan tanpa tanggal.
+- Konflik jadwal tenaga ahli.
+- Dokumen/link tidak ditemukan atau berada di luar root yang diizinkan.
+- Status hasil hitung tidak konsisten dengan field sumber.
+
+Kesalahan tidak boleh membuat aplikasi crash. Bedakan warning yang masih boleh disimpan dan error yang harus menghalangi commit. Sediakan halaman Validasi Data dengan filter, detail masalah, link ke record, dan status penyelesaian.
+
+## 34. Otomasi dan daily monitor
+
+Sediakan script `python daily_monitor.py` yang dapat dijalankan manual atau melalui Windows Task Scheduler. Script harus:
+
+1. Membaca konfigurasi dan database.
+2. Memvalidasi data.
+3. Menghitung deadline laporan.
+4. Mendeteksi laporan mendekati tenggat dan terlambat.
+5. Mendeteksi NET baru.
+6. Membuat billing draft untuk NET baru secara idempotent.
+7. Memeriksa invoice dan aging piutang.
+8. Memeriksa sampel laboratorium yang terlalu lama.
+9. Memeriksa stok JID.
+10. Memeriksa stok/kebutuhan souvenir.
+11. Memeriksa kegiatan pelatihan mendatang.
+12. Memeriksa konflik tenaga ahli.
+13. Memperbarui Notification Center secara idempotent.
+14. Menulis log dan ringkasan hasil.
+
+Jika database terkunci, path tidak tersedia, atau OneDrive belum selesai sinkron, jangan memaksa write. Catat error, keluarkan exit code yang sesuai, dan hentikan proses dengan aman. Pisahkan proses deteksi dari pengiriman notifikasi eksternal; pengiriman email/pesan tidak boleh aktif tanpa konfigurasi serta persetujuan.
+
+## 35. GitHub, konfigurasi, dan dokumentasi
+
+GitHub hanya digunakan untuk source code, version control, dokumentasi, serta release/deployment workflow. `.gitignore` minimal mencakup:
+
+```gitignore
+.env
+data/
+backup/
+logs/
+output/
+*.xlsx
+*.xls
+*.docx
+*.pdf
+```
+
+Sediakan `.env.example` tanpa nilai rahasia. README harus menjelaskan:
+
+- Deskripsi dan arsitektur sistem.
+- Struktur folder.
+- Instalasi Python pada Windows.
+- Pembuatan virtual environment dan instalasi `requirements.txt`.
+- Konfigurasi OneDrive dan database.
+- Menjalankan backend dan frontend.
+- Impor database lama.
+- Menjalankan daily monitor manual dan melalui Task Scheduler.
+- Backup dan restore.
+- Menjalankan test.
+- Git workflow.
+- Troubleshooting file lock, sinkronisasi OneDrive, port, permission, dan workbook rusak.
+
+Gunakan contoh perintah PowerShell yang aman dan jangan memasukkan path/credential milik pengguna ke dokumentasi.
+
+## 36. Prioritas pengembangan bertahap
+
+Jangan membangun seluruh sistem sekaligus tanpa validasi. Kerjakan berurutan:
+
+1. **Phase 1 — Fondasi dan database:** inspeksi environment/repository, desain skema, konfigurasi, repository Excel, backup atomik, audit dasar, validator, dan sample data terpisah.
+2. **Phase 2 — Dashboard utama:** layout, navigasi, KPI, filter global, regional/tahun, serta daftar/rincian pekerjaan.
+3. **Phase 3 — Monitoring laporan:** workflow umum dan RP, timeline, deadline 30 hari, NET/RP27, reminder lokal.
+4. **Phase 4 — Laboratorium:** analisis daun/tanah, KCD, usia sampel, indikator proses.
+5. **Phase 5 — Lampiran dosis dan dokumen:** integrasi OneDrive, metadata, link, versioning.
+6. **Phase 6 — JID dan inventory:** master produk, ledger stok, transaksi, katalog.
+7. **Phase 7 — Billing Center:** tagihan lintas modul, invoice, pembayaran, piutang, aging.
+8. **Phase 8 — Pelatihan:** kegiatan, kalender, tenaga ahli, deteksi konflik, souvenir.
+9. **Phase 9 — Notification Center dan otomasi:** daily monitor, idempotensi, log, Task Scheduler.
+10. **Phase 10 — Hardening:** testing menyeluruh, backup/restore drill, keamanan, performa, dokumentasi, dan deployment lokal.
+
+Setelah setiap fase:
+
+- Jalankan aplikasi.
+- Jalankan unit/integration test yang relevan.
+- Periksa log dan error browser/backend.
+- Validasi workbook hasil tulis dan backup.
+- Dokumentasikan file serta perubahan skema.
+- Laporkan risiko/peringatan.
+- Baru lanjut ke fase berikutnya setelah hasil fase stabil.
+
+## 37. Aturan kerja untuk Codex/agen pengembang
+
+Sebelum membuat perubahan:
+
+1. Inspect repository dan file tersembunyi yang relevan.
+2. Baca `README`, `AGENTS.md`, konfigurasi, dan test yang tersedia.
+3. Identifikasi teknologi existing dan jangan mengganti framework tanpa alasan kuat.
+4. Identifikasi database master dan lokasi dokumen tanpa mempublikasikan path sensitif.
+5. Buat backup sebelum perubahan database.
+6. Implementasikan perubahan sekecil dan seterukur mungkin sesuai fase.
+7. Jalankan test serta validasi hasil.
+8. Jangan menghapus atau menimpa data master untuk memperbaiki kegagalan test.
+
+Jika memiliki izin workspace, implementasikan langsung, bukan hanya memberi instruksi. Setelah setiap fase, laporkan:
+
+```text
+FILES CREATED:
+...
+
+FILES MODIFIED:
+...
+
+DATABASE CHANGES:
+...
+
+TEST RESULTS:
+...
+
+WARNINGS:
+...
+
+NEXT STEP:
+...
+```
+
+## 38. Target akhir
+
+Sistem akhir harus mampu:
+
+- Mengelola basis data administrasi delapan tahap.
+- Memonitor laporan bantuan teknis dan rekomendasi pemupukan.
+- Menghitung deadline laporan 30 hari dan mempertahankan histori checkpoint.
+- Mengelola NET/RP27 serta menyiapkan penagihan.
+- Mengelola regional, tahun, RKAP, pendapatan, HPP, laba, dan margin.
+- Memonitor laboratorium daun/tanah dan jumlah KCD.
+- Mengelola lampiran dosis dan dokumen OneDrive.
+- Mengelola produk, katalog, inventory, pengadaan, dan penjualan JID.
+- Mengelola Billing Center, invoice, pembayaran, dan aging piutang.
+- Mengelola pelatihan, kalender, tenaga ahli, konflik jadwal, dan souvenir.
+- Menyediakan Notification Center, daily monitor, audit trail, validasi, backup, dan restore.
+- Menjaga riwayat dan integritas data meskipun aplikasi diperbarui berulang kali.
+
+Mulai dari **Phase 1**. Pertama inspeksi environment dan repository, lalu tampilkan rancangan database/tabel beserta relasinya. Setelah itu implementasikan Phase 1, jalankan validasi, dan laporkan hasilnya sebelum melanjutkan ke Phase 2.

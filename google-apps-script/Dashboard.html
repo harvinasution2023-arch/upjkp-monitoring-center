@@ -1,0 +1,83 @@
+<script>
+'use strict';
+
+function reportStageCount(row) {
+  const status=String(row.status_hitung||row.checkpoint_terakhir||'').toUpperCase();
+  if (status.includes('NET')||status==='SELESAI') return 7;
+  if (status.includes('KOREKTOR 2 CETAK')) return 6;
+  if (status.includes('KOREKTOR 1 CETAK')) return 5;
+  if (status.includes('CETAK')||status.includes('DICETAK')) return 4;
+  if (status.includes('KOREKTOR 2')) return 3;
+  if (status.includes('KOREKTOR')||status.includes('KOREKSI')||status.includes('REVISI')) return 2;
+  if (row.tanggal_draft_masuk||status.includes('DRAFT')) return 1;
+  return 0;
+}
+
+function dashboardHero(data) {
+  const years=['<option value="">Semua tahun</option>',...(data.years||[]).map(year=>`<option value="${year}" ${String(year)===String(state.year)?'selected':''}>${year}</option>`)].join('');
+  return `<div class="pagehead dashboard-heading"><div><span class="section-kicker">RINGKASAN OPERASIONAL</span><h1>Dashboard Utama</h1><p>Monitoring terpadu empat subbagian UPJKP–PPKS</p></div><div class="actions">${data.sample_data?'<span class="sample-flag">SAMPLE DATA</span>':''}<select id="dashboard-year" class="select" aria-label="Pilih tahun">${years}</select><button class="button secondary" data-action="database">Buka Database</button><button class="button primary" data-action="create">+ Catat Kegiatan</button></div></div><section class="hero-row"><article class="hero"><div class="hero-copy"><small>Selamat Datang di</small><h1>UPJKP MONITORING CENTER</h1><p>Data Akurat &nbsp;•&nbsp; Proses Terpantau &nbsp;•&nbsp; Layanan Lebih Baik</p></div><div class="hero-quote">Kolaborasi, Inovasi,<br>Solusi untuk Perkebunan<br>yang Berkelanjutan</div></article><aside class="date-card"><div class="date-card-top"><div><time id="live-time">--:--</time><span id="live-date" class="date-label">Memuat tanggal…</span></div><span class="weather"><span class="sun-icon">☀</span> Medan</span></div><div class="ppks-id"><div><strong>PPKS</strong><small>Pusat Penelitian Kelapa Sawit</small></div><span class="ppks-seal">PPKS</span></div></aside></section>`;
+}
+
+function dashboardKpis(k) {
+  return `<section class="kpis" aria-label="Indikator kinerja utama">
+    ${kpiCard({label:'Total Kegiatan',value:angka.format(k.activities),note:'Empat subbagian',accent:'var(--teal)',icon:'activity',view:'activities'})}
+    ${kpiCard({label:'Laporan Aktif',value:angka.format(k.reports_process),note:`${k.reports_done} selesai`,accent:'var(--blue)',icon:'file',view:'reports-rp'})}
+    ${kpiCard({label:'Laporan Terlambat',value:angka.format(k.reports_late),note:'Melewati SLA 30 hari',accent:'var(--red)',icon:'alert',view:'reports-rp',filter:'TERLAMBAT'})}
+    ${kpiCard({label:'Laporan NET',value:angka.format(k.reports_done),note:`Penyelesaian ${k.completion}%`,accent:'var(--green)',icon:'check',view:'reports-rp',filter:'SELESAI'})}
+    ${kpiCard({label:'Siap Penagihan',value:angka.format(k.net_ready),note:'NET belum ditagihkan',accent:'var(--orange)',icon:'wallet',view:'billing',filter:'SIAP TAGIH'})}
+    ${kpiCard({label:'Piutang',value:compact(k.receivable),note:`${compact(k.paid)} dibayar`,accent:'var(--purple)',icon:'money',view:'billing'})}
+    ${kpiCard({label:'Pendapatan',value:compact(k.revenue),note:`Capaian RKAP ${k.rkap_achievement}%`,accent:'var(--teal)',icon:'trend',view:'billing'})}
+    ${kpiCard({label:'Kegiatan Pelatihan',value:angka.format(k.training_upcoming),note:'Agenda mendatang',accent:'var(--purple)',icon:'calendar',view:'training'})}
+  </section>`;
+}
+
+function dashboardAttention(items) {
+  const selected=state.alertFilter||'Semua';
+  const filtered=(items||[]).filter(item=>selected==='Semua'||String(item.type).toUpperCase()===selected.toUpperCase()||(selected==='Pelatihan'&&String(item.type).toUpperCase()==='TRAINING'));
+  const tabs=['Semua','Laporan','Billing','Stok','Pelatihan'].map(tab=>`<button class="${tab===selected?'active':''}" data-action="alert-filter" data-filter="${tab}">${tab}</button>`).join('');
+  const list=filtered.length?filtered.map(item=>{
+    const type=String(item.type||'').toUpperCase();
+    const cls=item.priority===1?'critical':type==='BILLING'?'billing':type.includes('PELATIHAN')||type==='TRAINING'?'training':'';
+    const detail=String(item.detail||'').toUpperCase();
+    const label=item.priority===1?'TERLAMBAT':type==='BILLING'?'SIAP TAGIH':type==='STOK'?'STOK RENDAH':type==='TRAINING'?'SEGERA':detail.includes('SEGERA')?'SEGERA':detail.includes('PERHATIAN')?'PERHATIAN':type;
+    return `<button class="attention-item ${cls}" data-view="${esc(item.view||'dashboard')}"><span class="attention-dot"></span><span><strong>${esc(item.title)}</strong><small>${esc(item.detail)}</small></span><span class="mini-status">${esc(label)}</span></button>`;
+  }).join(''):emptyState('Tidak ada item pada filter ini','Semua indikator dalam kategori terpilih berada dalam kondisi aman.');
+  return `<article class="panel attention-panel">${sectionHead('⚠ Perlu Perhatian','Prioritas operasional tertinggi',`<div class="count-pill">${filtered.length}</div>`)}<div class="tabs">${tabs}</div><div class="attention">${list}</div></article>`;
+}
+
+function dashboardSubsections(data) {
+  const cards=(data.subsections||[]).map(item=>subsectionCard(item,unitMeta[item.code]||unitMeta.ADM)).join('');
+  return `<article class="panel">${sectionHead('Empat Subbagian UPJKP','Kinerja kegiatan, laporan, dan pendapatan')}<div class="units">${cards}</div></article>`;
+}
+
+function dashboardCharts(data) {
+  const k=data.kpis;
+  const sectionItems=(data.subsections||[]).map((item,index)=>({label:index===0?'Rekomendasi & JID':item.label,value:item.count,color:['#14b8a6','#2196f3','#a855f7','#ff9800'][index]}));
+  const report=data.report_status||{};
+  const reportItems=[
+    {label:'Draft',value:report.draft||0,color:'#7b8fa3'},
+    {label:'Proses',value:report.process||0,color:'#2196f3'},
+    {label:'Cetak 1',value:report.print1||0,color:'#facc15'},
+    {label:'Cetak NET',value:report.printNet||0,color:'#a855f7'},
+    {label:'NET',value:report.net||0,color:'#14b8a6'},
+  ];
+  return `<section class="chart-grid"><article class="panel chart-panel">${sectionHead('Pendapatan vs RKAP','Realisasi dan target bulanan',`<div class="achievement"><small>Realisasi</small><strong>${k.rkap_achievement}%</strong></div>`)}<div class="chart-meta"><span><i></i>Pendapatan</span><span><i class="target"></i>Target / RKAP</span></div>${revenueChart(data.monthly||[])}</article><article class="panel chart-panel">${sectionHead('Distribusi Kegiatan','Per subbagian')}${donutChart(k.activities,'Kegiatan',sectionItems,'activities')}</article><article class="panel chart-panel">${sectionHead('Status Laporan','Tahap penyelesaian')}${donutChart(k.reports,'Laporan',reportItems,'reports-rp')}</article></section>`;
+}
+
+function dashboardReportTable(reports) {
+  const rows=(reports||[]).length?reports.map(row=>`<tr class="clickable" data-action="report-detail" data-id="${esc(row.report_id)}"><td class="mono">${esc(row.report_id)}</td><td><strong>${esc(row.perusahaan||'—')}</strong></td><td>${esc(row.nama_kegiatan||'—')}</td><td>${esc(row.kebun||'—')}</td><td>${dateText(row.tanggal_draft_masuk)}</td><td class="mono">${angka.format(row.hari_berjalan||0)}</td><td>${statusBadge(row.status_deadline)}</td><td>${miniCheckpoints(reportStageCount(row))}</td></tr>`).join(''):`<tr><td colspan="8" class="row-empty">Tidak ada laporan terbaru.</td></tr>`;
+  return `<article class="panel">${sectionHead('Laporan Terbaru','Klik baris untuk melihat detail',`<button class="button secondary small" data-view="reports-rp">Lihat Semua</button>`)}<div class="tablewrap"><table><thead><tr><th>ID</th><th>Perusahaan</th><th>Kegiatan</th><th>Kebun</th><th>Tanggal Draft</th><th>Hari ke-</th><th>Status</th><th>Progress</th></tr></thead><tbody>${rows}</tbody></table></div></article>`;
+}
+
+function dashboardTrainingTable(trainings) {
+  const rows=(trainings||[]).length?trainings.map(row=>`<tr class="clickable" data-view="training"><td>${dateText(row.tanggal_mulai)}</td><td><strong>${esc(row.perusahaan||'—')}</strong></td><td>${esc(row.nama_kegiatan||'—')}</td><td>${esc(row.lokasi||'—')}</td><td class="number">${angka.format(row.jumlah_peserta||0)}</td><td>${statusBadge(row.status)}</td></tr>`).join(''):`<tr><td colspan="6" class="row-empty">Belum ada pelatihan mendatang.</td></tr>`;
+  return `<article class="panel">${sectionHead('Kegiatan Pelatihan Mendatang','Agenda dan kesiapan pelaksanaan',`<button class="button secondary small" data-view="calendar">Kalender</button>`)}<div class="tablewrap"><table><thead><tr><th>Tanggal</th><th>Perusahaan</th><th>Kegiatan</th><th>Lokasi</th><th>Peserta</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div></article>`;
+}
+
+function renderDashboard(data) {
+  if (!data) return;
+  content.innerHTML=`${dashboardHero(data)}${!data.kpis.activities&&!data.kpis.reports?`<section class="panel" style="margin-bottom:12px">${sectionHead('Dashboard siap digunakan','Catat kegiatan pertama atau muat data contoh berlabel DEMO.',`<div class="actions"><button class="button secondary" data-action="demo">Muat Data Contoh</button><button class="button primary" data-action="create">Catat Kegiatan</button></div>`)}</section>`:''}${dashboardKpis(data.kpis)}<section class="dashboard-grid">${dashboardSubsections(data)}${dashboardAttention(data.attention)}</section>${dashboardCharts(data)}<section class="lower-grid">${dashboardReportTable(data.recent_reports)}${dashboardTrainingTable(data.upcoming_trainings)}</section>`;
+  state.currentReports=data.recent_reports||[];
+  updateClock();
+}
+</script>

@@ -1,0 +1,80 @@
+<script>
+'use strict';
+
+function svgIcon(name, className='') {
+  return `<svg class="${className}" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
+}
+
+function statusTone(value) {
+  const status=String(value||'').toUpperCase();
+  if (status.includes('TERLAMBAT')||status.includes('JATUH TEMPO')||status.includes('ERROR')||status.includes('HABIS')) return 'danger';
+  if (status.includes('SEGERA')||status.includes('WARNING')||status.includes('TERBATAS')||status.includes('RENDAH')) return 'warning';
+  if (status.includes('PERHATIAN')) return 'attention';
+  if (status.includes('PELATIHAN')||status.includes('PERSIAPAN')||status.includes('RENCANA')) return 'purple';
+  if (status.includes('SIAP TAGIH')||status.includes('INVOICE')||status.includes('MENUNGGU')) return 'info';
+  if (status.includes('NET')||status.includes('SELESAI')) return 'teal';
+  if (status.includes('AMAN')||status.includes('LUNAS')||status.includes('AKTIF')||status.includes('VALID')||status.includes('TERSEDIA')) return 'success';
+  return 'info';
+}
+
+function statusBadge(value) {
+  return `<span class="badge ${statusTone(value)}">${esc(value||'Belum diisi')}</span>`;
+}
+
+function sectionHead(title, subtitle='', right='') {
+  return `<div class="panelhead"><div><h2>${esc(title)}</h2>${subtitle?`<p>${esc(subtitle)}</p>`:''}</div>${right}</div>`;
+}
+
+function emptyState(title, message, action='') {
+  return `<div class="empty"><b>✓</b><h3>${esc(title)}</h3><p>${esc(message)}</p>${action}</div>`;
+}
+
+function progressBar(value, note='') {
+  const percent=Math.max(0,Math.min(100,Number(value||0)));
+  return `<div class="progress"><div class="track"><span style="width:${percent}%"></span></div>${note?`<small>${esc(note)}</small>`:''}</div>`;
+}
+
+function miniCheckpoints(done, total=7) {
+  const completed=Math.max(0,Math.min(total,Number(done||0)));
+  return `<div class="checkpoints" aria-label="${completed} dari ${total} checkpoint">${Array.from({length:total},(_,index)=>`${index?'<span></span>':''}<i class="${index<completed?'done':index===completed?'current':''}"></i>`).join('')}</div>`;
+}
+
+function kpiCard({label,value,note,accent='var(--teal)',icon='activity',view='',filter='',trend=''}) {
+  const attributes=`${view?` data-view="${esc(view)}"`:''}${filter?` data-filter-status="${esc(filter)}"`:''}`;
+  return `<button class="kpi" style="--accent:${accent}"${attributes} aria-label="${esc(label)}: ${esc(value)}"><span class="kpi-top"><span class="kpi-icon">${svgIcon(icon)}</span>${trend?`<span class="kpi-trend">${esc(trend)}</span>`:''}</span><span class="kpi-label">${esc(label)}</span><strong class="kpi-value">${esc(value)}</strong><small class="kpi-note">${esc(note)}</small></button>`;
+}
+
+function subsectionCard(item, meta) {
+  return `<button class="unit-card ${meta.cls}" data-view="${meta.view}"><header><span class="unit-symbol">${svgIcon(meta.icon)}</span><span class="unit-arrow">→</span></header><h3>${esc(item.label)}</h3><div class="unit-metrics"><span><i></i>${angka.format(item.count)} kegiatan</span><span><i></i>${angka.format(item.done)} laporan selesai</span></div><div class="unit-revenue"><span><small>Pendapatan</small><strong>${compact(item.revenue)}</strong></span><span class="completion">${Math.min(100,item.completion)}%</span></div><div class="meter"><span style="width:${Math.min(100,item.completion)}%"></span></div></button>`;
+}
+
+function revenueChart(items) {
+  const max=Math.max(1,...items.flatMap(item=>[Number(item.revenue||0),Number(item.rkap||0)]));
+  const points=items.map((item,index)=>{
+    const x=items.length===1?50:index/(items.length-1)*100;
+    const y=100-(Number(item.rkap||0)/max*92);
+    return `${x.toFixed(2)},${Math.max(4,y).toFixed(2)}`;
+  }).join(' ');
+  const circles=items.map((item,index)=>{
+    const x=items.length===1?50:index/(items.length-1)*100;
+    const y=Math.max(4,100-(Number(item.rkap||0)/max*92));
+    return `<circle cx="${x}" cy="${y}" r="1.8"></circle>`;
+  }).join('');
+  const bars=items.map(item=>`<div class="month-bar" title="${esc(`${item.month}: Pendapatan ${money(item.revenue)}, RKAP ${money(item.rkap)}`)}"><i style="height:${Math.max(item.revenue?2:0,Number(item.revenue||0)/max*100)}%"></i><small>${esc(item.month)}</small></div>`).join('');
+  return `<div class="revenue-chart"><span class="chart-gridline"></span><span class="chart-gridline"></span><span class="chart-gridline"></span><div class="revenue-bars">${bars}</div><svg class="line-chart" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${points}"></polyline>${circles}</svg></div>`;
+}
+
+function donutChart(total, label, items, view='') {
+  const safeTotal=Math.max(0,Number(total||0));
+  const itemTotal=items.reduce((sum,item)=>sum+Number(item.value||0),0);
+  const divisor=safeTotal||itemTotal||1;
+  let cursor=0;
+  const segments=items.map(item=>{
+    const start=cursor;
+    cursor+=Number(item.value||0)/divisor*100;
+    return `${item.color} ${start.toFixed(2)}% ${Math.min(100,cursor).toFixed(2)}%`;
+  }).join(',');
+  const legend=items.map(item=>`<span><i style="--dot:${item.color}"></i><em>${esc(item.label)}</em><b>${angka.format(item.value||0)}</b></span>`).join('');
+  return `<div class="donut-layout"><div class="donut" style="--segments:conic-gradient(${itemTotal?segments:'#e8eef3 0 100%'})"${view?` data-view="${esc(view)}"`:''} role="img" aria-label="${esc(label)} ${angka.format(safeTotal)}"><div class="donut-center"><strong>${angka.format(safeTotal)}</strong><small>${esc(label)}</small></div></div><div class="donut-legend">${legend}</div></div>`;
+}
+</script>

@@ -1,0 +1,1006 @@
+# MASTER PROMPT — PEMBUATAN DASHBOARD MONITORING UPJKP
+
+Anda bertindak sebagai **Senior Full-Stack Developer, Data Engineer, dan UI/UX Designer**.
+
+Tugas Anda adalah membangun aplikasi web **“Dashboard Monitoring UPJKP – Urusan Pelayanan Jasa Konsultan”** yang digunakan untuk monitoring kegiatan operasional UPJKP.
+
+Aplikasi harus profesional, mudah digunakan oleh staf administrasi maupun pimpinan, responsive untuk desktop/laptop, memiliki database yang persisten, mendukung upload/link dokumen, reminder otomatis, monitoring progress, penagihan, inventory, dan pelatihan.
+
+---
+
+# 1. ARSITEKTUR SISTEM
+
+Gunakan arsitektur:
+
+OneDrive → Master Database & Dokumen  
+Windows PC → Environment lokal  
+Python → Backend/data processing  
+Codex Agent → Development & maintenance  
+GitHub → Source code/version control  
+Web Dashboard → User interface
+
+JANGAN gunakan GitHub sebagai database operasional.
+
+Pisahkan:
+
+- SOURCE CODE → GitHub
+- DATABASE → OneDrive
+- DOKUMEN → OneDrive
+- CONFIGURATION → local/config
+- DASHBOARD → aplikasi web
+
+Jangan pernah menghapus atau menimpa database master tanpa backup.
+
+Gunakan pendekatan modular agar database Excel nantinya dapat dimigrasikan ke SQLite/PostgreSQL tanpa harus mendesain ulang seluruh aplikasi.
+
+---
+
+# 2. STRUKTUR PROJECT
+
+Buat struktur project yang terorganisir, misalnya:
+
+UPJKP-Monitoring/
+│
+├── app/
+├── backend/
+├── frontend/
+├── data/
+├── scripts/
+├── config/
+├── assets/
+├── docs/
+├── logs/
+├── tests/
+├── output/
+├── .gitignore
+├── README.md
+└── requirements.txt
+
+Folder database OneDrive harus dapat ditentukan melalui konfigurasi dan JANGAN hard-code username/path Windows.
+
+Contoh:
+
+ONEDRIVE_DATABASE_PATH=
+ONEDRIVE_DOCUMENT_PATH=
+
+Pastikan file konfigurasi yang mengandung informasi sensitif tidak masuk GitHub.
+
+---
+
+# 3. MASTER DATABASE
+
+Buat database terstruktur dengan tabel/sheet:
+
+1. MASTER_PERUSAHAAN
+2. MONITORING_LAPORAN
+3. HISTORI_LAPORAN
+4. ANALISIS_LAB
+5. LAMPIRAN_DOSIS
+6. MASTER_PRODUK_JID
+7. STOK_JID
+8. TRANSAKSI_JID
+9. PENAGIHAN
+10. KEGIATAN_PELATIHAN
+11. TENAGA_AHLI
+12. SOUVENIR
+
+Setiap record harus mempunyai unique ID.
+
+Contoh:
+
+PRSH-0001  
+LAP-2026-0001  
+LAB-2026-0001  
+JID-2026-0001  
+PLT-2026-0001
+
+Gunakan ID sebagai relasi antar tabel dan jangan hanya mengandalkan nama perusahaan.
+
+Sediakan kolom created_at, updated_at, dan bila diperlukan created_by/updated_by.
+
+---
+
+# 4. DASHBOARD UTAMA
+
+Buat halaman:
+
+“UPJKP MONITORING CENTER”
+
+Tampilkan KPI utama:
+
+- Total kegiatan aktif
+- Total laporan
+- Laporan dalam proses
+- Laporan mendekati deadline
+- Laporan terlambat
+- Laporan NET
+- Siap penagihan
+- Tagihan belum lunas
+- Analisis laboratorium aktif
+- Total sampel/KCD
+- Kegiatan pelatihan mendatang
+- Pendapatan JID
+- Nilai piutang
+- Stok produk kritis
+
+Tambahkan panel:
+
+“PERLU PERHATIAN”
+
+Prioritaskan:
+
+1. laporan terlambat
+2. laporan mendekati 30 hari
+3. laporan NET belum ditagih
+4. invoice belum dibayar
+5. stok JID rendah
+6. jadwal pelatihan terdekat
+7. konflik jadwal tenaga ahli
+
+Gunakan visualisasi yang sederhana, profesional, dan mudah dibaca.
+
+---
+
+# 5. MODUL MONITORING LAPORAN
+
+Buat modul:
+
+“Monitoring Laporan Rekomendasi Pemupukan”
+
+Workflow utama:
+
+DRAFT MASUK
+↓
+KOREKTOR 1
+↓
+KOREKTOR 2
+↓
+CETAK 1
+↓
+KOREKTOR 1 CETAK
+↓
+KOREKTOR 2 CETAK
+↓
+CETAK NET
+↓
+NET / RP27
+↓
+SIAP PENAGIHAN
+↓
+DITAGIH
+↓
+LUNAS
+
+Untuk setiap kegiatan simpan minimal:
+
+- ID Laporan
+- Nama perusahaan
+- Kebun
+- Nama kegiatan
+- Tahun kegiatan
+- Tanggal draft masuk
+- Nama file draft
+- Link/path file
+- Korektor 1
+- Tanggal Korektor 1
+- Korektor 2
+- Tanggal Korektor 2
+- Tanggal Cetak 1
+- Korektor 1 Cetak
+- Tanggal Korektor 1 Cetak
+- Korektor 2 Cetak
+- Tanggal Korektor 2 Cetak
+- Tanggal Cetak NET
+- Nomor/Nama RP27
+- File NET
+- Status
+- PIC
+- Catatan
+
+File NET menggunakan pola nama:
+
+RP27_(Nama Kegiatan_Perusahaan_Kebun)
+
+Tampilkan progress setiap laporan dalam bentuk timeline/checkpoint.
+
+---
+
+# 6. SISTEM DEADLINE 30 HARI
+
+Tanggal Draft Masuk menjadi titik awal perhitungan.
+
+Rumus:
+
+Deadline = Tanggal Draft Masuk + 30 hari
+
+Hitung:
+
+- Hari berjalan
+- Hari tersisa
+- Persentase waktu
+- Deadline
+- Status keterlambatan
+
+Kategori:
+
+0–20 hari = HIJAU / AMAN  
+21–25 hari = KUNING / PERHATIAN  
+26–29 hari = ORANYE / SEGERA SELESAIKAN  
+>=30 hari dan belum NET = MERAH / TERLAMBAT  
+NET = HIJAU / SELESAI
+
+Jika NET tercapai:
+
+STOP countdown laporan.
+
+Kemudian otomatis buat status:
+
+“NET – SIAP PENAGIHAN”
+
+Jangan menghapus histori checkpoint.
+
+---
+
+# 7. REMINDER LAPORAN
+
+Buat reminder otomatis.
+
+Reminder harus dapat mendeteksi laporan:
+
+- Hari ke-21
+- Hari ke-26
+- Hari ke-29
+- Hari ke-30
+- >30 hari
+
+Contoh pesan:
+
+REMINDER UPJKP
+
+PT ABC  
+Kebun A  
+Rekomendasi Pemupukan 2027
+
+Draft masuk: 01 September 2026  
+Hari berjalan: 26 hari  
+Sisa waktu: 4 hari  
+Status terakhir: Korektor 2
+
+PERLU PERCEPATAN PENYELESAIAN.
+
+Jika sudah NET:
+
+LAPORAN SIAP PENAGIHAN
+
+PT ABC  
+Kebun A  
+Tanggal NET: xx/xx/xxxx  
+Dokumen: RP27_xxx
+
+Silakan proses penagihan.
+
+Pastikan reminder bersifat idempotent sehingga notifikasi yang sama tidak terkirim berulang tanpa aturan yang jelas.
+
+---
+
+# 8. MONITORING ANALISIS LABORATORIUM
+
+Buat dua kategori:
+
+A. ANALISIS DAUN  
+B. ANALISIS TANAH
+
+Field minimal:
+
+- ID
+- Nama perusahaan
+- Kebun
+- Jenis analisis
+- Jumlah KCD
+- Tahun
+- Tanggal sampel masuk
+- Umur sampel dalam hari
+- Status
+- Tanggal selesai
+- PIC
+- Catatan
+
+Status:
+
+SAMPEL MASUK  
+PROSES  
+SELESAI
+
+Dashboard harus menampilkan:
+
+- Total KCD
+- KCD daun
+- KCD tanah
+- Dalam proses
+- Selesai
+- Umur sampel
+- Perusahaan
+- Tren sampel berdasarkan bulan/tahun
+
+Berikan indikator khusus untuk sampel yang terlalu lama berada dalam status proses.
+
+---
+
+# 9. LAMPIRAN DOSIS PEMUPUKAN
+
+Buat modul:
+
+“Lampiran Dosis Pemupukan”
+
+Field:
+
+- ID
+- Nama perusahaan
+- Kebun
+- Tahun rekomendasi
+- Nama file
+- Link/path OneDrive
+- Tanggal upload
+- PIC
+- Status
+- Catatan
+
+Status:
+
+BELUM TERSEDIA  
+SUDAH UPLOAD  
+TERVERIFIKASI
+
+Sediakan fungsi:
+
+UPLOAD / PILIH FILE  
+LIHAT FILE  
+BUKA LOKASI FILE
+
+Jangan menyimpan binary dokumen ke GitHub.
+
+---
+
+# 10. JASA INFORMASI DIGITALISASI (JID)
+
+Buat modul JID.
+
+Produk awal:
+
+1. Ombrometer
+2. Gelas Ukur
+3. Automatic Weather Station (AWS)
+
+Buat MASTER PRODUK dengan:
+
+- Product ID
+- Nama
+- Foto
+- Deskripsi
+- Spesifikasi
+- Harga
+- Minimum stok
+- Status produk
+
+Buat inventory:
+
+STOK AWAL
++
+PENGADAAN
+-
+PENJUALAN
+=
+STOK TERSEDIA
+
+Jangan hanya menyimpan stok akhir.
+
+Simpan seluruh mutasi stok sehingga dapat diaudit.
+
+Dashboard JID menampilkan:
+
+- Stok tersedia
+- Barang masuk
+- Barang terjual
+- Produk stok rendah
+- Pendapatan
+- Penjualan bulanan
+- Penjualan tahunan
+- Penjualan per perusahaan
+- Belum ditagih
+- Sudah ditagih
+- Belum dibayar
+- Sudah lunas
+
+---
+
+# 11. KATALOG PRODUK
+
+Buat halaman:
+
+“Katalog Jasa Informasi Digitalisasi”
+
+Tampilkan kartu produk berisi:
+
+[FOTO]
+
+Nama Produk
+
+Spesifikasi singkat
+
+Harga
+
+Stok:
+TERSEDIA / TERBATAS / HABIS
+
+Produk:
+
+OMBROMETER  
+GELAS UKUR  
+AUTOMATIC WEATHER STATION (AWS)
+
+Desain katalog harus profesional dan mudah ditambah produk baru tanpa mengubah source code utama.
+
+---
+
+# 12. BILLING CENTER
+
+Buat satu modul penagihan terpusat:
+
+“UPJKP BILLING CENTER”
+
+Penagihan dapat berasal dari:
+
+- Laporan/Rekomendasi
+- JID
+- Pelatihan
+- jasa lainnya di masa depan
+
+Field minimal:
+
+- Billing ID
+- Perusahaan
+- Kebun
+- Sumber kegiatan
+- Activity ID
+- Nilai
+- Tanggal siap tagih
+- Nomor invoice
+- Tanggal invoice
+- Jatuh tempo
+- Status
+- Tanggal pembayaran
+- Catatan
+
+Status:
+
+BELUM SIAP TAGIH  
+SIAP TAGIH  
+INVOICE TERBIT  
+MENUNGGU PEMBAYARAN  
+JATUH TEMPO  
+LUNAS
+
+Tampilkan:
+
+TOTAL SIAP TAGIH  
+TOTAL INVOICE  
+TOTAL PIUTANG  
+TOTAL LUNAS  
+AGING PIUTANG
+
+---
+
+# 13. SUB BAGIAN PELATIHAN
+
+Buat modul:
+
+“Monitoring Kegiatan Pelatihan”
+
+Field:
+
+- ID kegiatan
+- Nama perusahaan
+- Nama kegiatan
+- Lokasi
+- Tanggal mulai
+- Tanggal selesai
+- Jumlah peserta
+- PIC
+- Status
+- Catatan
+
+Status:
+
+RENCANA  
+DIJADWALKAN  
+PERSIAPAN  
+SIAP  
+PELAKSANAAN  
+SELESAI
+
+Tampilkan kalender kegiatan.
+
+---
+
+# 14. TENAGA AHLI
+
+Buat master:
+
+TENAGA_AHLI
+
+Field:
+
+- ID
+- Nama
+- Bidang keahlian
+- Status aktif
+- Kontak bila diperlukan
+- Catatan
+
+Hubungkan tenaga ahli dengan kegiatan pelatihan.
+
+Sistem harus mendeteksi:
+
+- tersedia
+- tidak tersedia
+- sudah memiliki kegiatan
+- konflik jadwal
+
+Jangan mengizinkan double booking tanpa warning.
+
+---
+
+# 15. SOUVENIR PELATIHAN
+
+Buat inventory souvenir.
+
+Simpan:
+
+- Item
+- Stok awal
+- Pengadaan
+- Pemakaian
+- Stok tersedia
+- Minimum stok
+
+Hubungkan pemakaian souvenir dengan kegiatan pelatihan.
+
+Contoh:
+
+Peserta = 35  
+Kebutuhan souvenir = 35  
+Stok = 42
+
+STATUS = CUKUP
+
+Jika:
+
+Peserta = 50  
+Stok = 42
+
+STATUS = KURANG 8
+
+---
+
+# 16. SEARCH DAN FILTER
+
+Semua tabel utama harus mendukung:
+
+- Search
+- Filter perusahaan
+- Filter kebun
+- Filter tahun
+- Filter status
+- Filter PIC
+- Filter tanggal
+- Sort
+- Pagination
+
+Tambahkan tombol:
+
+RESET FILTER
+
+---
+
+# 17. DETAIL PERUSAHAAN
+
+Buat halaman detail perusahaan.
+
+Ketika perusahaan dipilih, tampilkan seluruh histori:
+
+PERUSAHAAN
+│
+├── Laporan
+├── Laboratorium
+├── Lampiran Dosis
+├── Pembelian JID
+├── Penagihan
+└── Pelatihan
+
+Dengan demikian semua aktivitas perusahaan dapat dilihat dari satu halaman.
+
+---
+
+# 18. AUDIT TRAIL
+
+Semua perubahan penting harus memiliki histori.
+
+Catat:
+
+- waktu
+- record
+- field
+- nilai sebelumnya
+- nilai baru
+- user/PIC
+- jenis tindakan
+
+Jangan menghapus histori hanya karena status kegiatan berubah.
+
+---
+
+# 19. BACKUP
+
+Sebelum database dimodifikasi:
+
+1. validasi database
+2. buat backup
+3. lakukan update
+4. validasi hasil
+5. simpan log
+
+Gunakan struktur:
+
+backup/
+YYYY/
+MM/
+
+Contoh:
+
+UPJKP_DB_2026-09-04_0900.xlsx
+
+Batasi dan kelola retensi backup agar penyimpanan tidak terus membesar tanpa kontrol.
+
+---
+
+# 20. PROTEKSI DATABASE
+
+PENTING:
+
+Database master adalah sumber data utama.
+
+Agent TIDAK BOLEH:
+
+- menghapus database
+- mengosongkan sheet
+- mengganti seluruh workbook tanpa backup
+- menghapus record historis
+- mengubah ID existing
+- mengubah struktur database secara diam-diam
+- memasukkan database/dokumen internal ke repository GitHub publik
+
+Jika perubahan berpotensi merusak data, STOP dan minta konfirmasi.
+
+---
+
+# 21. UI/UX
+
+Gunakan desain dashboard corporate-modern.
+
+Karakter:
+
+- clean
+- profesional
+- minimalis
+- data-centric
+- responsive
+- mudah digunakan
+- tidak terlalu banyak dekorasi
+
+Sidebar:
+
+DASHBOARD
+
+REKOMENDASI & JASA
+- Monitoring Laporan
+- Analisis Laboratorium
+- Lampiran Dosis
+- JID
+- Katalog
+
+PELATIHAN
+- Kegiatan
+- Kalender
+- Tenaga Ahli
+- Souvenir
+
+KEUANGAN
+- Billing Center
+
+ADMINISTRASI
+- Perusahaan
+- Dokumen
+- Audit Log
+
+Gunakan card KPI, progress bar, timeline, tabel interaktif, chart, badge status, dan calendar.
+
+---
+
+# 22. NOTIFICATION CENTER
+
+Tambahkan ikon notification/bell.
+
+Kategori:
+
+URGENT  
+REMINDER  
+BILLING  
+STOCK  
+TRAINING  
+LAB
+
+Contoh:
+
+🔴 2 laporan terlambat  
+🟠 3 laporan memasuki hari ke-26  
+💰 4 laporan NET siap ditagih  
+📦 stok AWS tersisa 2  
+📅 pelatihan PT ABC H-3
+
+Notifikasi harus dapat ditandai sebagai:
+
+READ / UNREAD
+
+dan memiliki link menuju record terkait.
+
+---
+
+# 23. AUTOMATION
+
+Siapkan script yang dapat dijalankan otomatis menggunakan Windows Task Scheduler.
+
+Contoh:
+
+python daily_monitor.py
+
+Daily monitor harus:
+
+1. membaca database
+2. validasi data
+3. menghitung deadline laporan
+4. mencari laporan terlambat
+5. mendeteksi NET baru
+6. memeriksa penagihan
+7. memeriksa invoice jatuh tempo
+8. memeriksa stok JID
+9. memeriksa souvenir
+10. memeriksa kegiatan pelatihan
+11. memeriksa konflik tenaga ahli
+12. memperbarui notification center
+13. menulis log
+
+Jika database sedang disinkronkan OneDrive atau file terkunci, jangan memaksa overwrite. Catat error dan hentikan write dengan aman.
+
+---
+
+# 24. GITHUB
+
+GitHub hanya digunakan untuk:
+
+- source code
+- version control
+- documentation
+- release/deployment workflow
+
+Buat .gitignore yang minimal mencakup:
+
+.env
+data/
+backup/
+logs/
+*.xlsx
+*.xls
+*.docx
+*.pdf
+
+Jangan commit credential, token, database perusahaan, laporan internal, atau dokumen pelanggan.
+
+---
+
+# 25. README
+
+Buat README lengkap:
+
+- deskripsi sistem
+- arsitektur
+- struktur folder
+- instalasi
+- setup Python
+- konfigurasi OneDrive
+- konfigurasi database
+- menjalankan aplikasi
+- menjalankan daily monitor
+- backup
+- restore
+- Git workflow
+- troubleshooting
+
+Berikan instruksi khusus untuk Windows PowerShell/Terminal.
+
+---
+
+# 26. VALIDASI
+
+Buat fungsi validasi untuk mendeteksi:
+
+- duplicate ID
+- tanggal tidak valid
+- tanggal checkpoint lebih awal dari draft
+- NET tanpa draft
+- jumlah KCD negatif
+- stok negatif
+- transaksi tanpa perusahaan
+- invoice tanpa activity
+- pembayaran sebelum invoice
+- pelatihan tanpa tanggal
+- konflik tenaga ahli
+- file/link dokumen tidak ditemukan
+
+Kesalahan data harus ditampilkan dengan jelas dan tidak boleh membuat aplikasi crash.
+
+---
+
+# 27. DATA CONTOH
+
+Jika database asli belum tersedia, buat SAMPLE DATA.
+
+Gunakan perusahaan fiktif:
+
+PT Agro Sejahtera  
+PT Sawit Makmur  
+PT Perkebunan Nusantara  
+PT Palma Lestari
+
+Jangan menganggap sample data sebagai data produksi.
+
+Berikan label:
+
+DEMO / SAMPLE DATA
+
+---
+
+# 28. PRIORITAS PENGEMBANGAN
+
+JANGAN membangun semuanya sekaligus tanpa validasi.
+
+Kerjakan bertahap:
+
+PHASE 1
+Database design
+
+PHASE 2
+Dashboard utama
+
+PHASE 3
+Monitoring laporan + deadline 30 hari
+
+PHASE 4
+Laboratorium
+
+PHASE 5
+Lampiran dosis
+
+PHASE 6
+JID + inventory
+
+PHASE 7
+Billing Center
+
+PHASE 8
+Pelatihan + tenaga ahli + souvenir
+
+PHASE 9
+Notification/reminder
+
+PHASE 10
+Testing + backup + deployment
+
+Setelah setiap phase:
+
+- jalankan aplikasi
+- lakukan test
+- periksa error
+- dokumentasikan perubahan
+- baru lanjut phase berikutnya
+
+---
+
+# 29. ATURAN KERJA CODEX AGENT
+
+Sebelum melakukan perubahan:
+
+1. Inspect repository.
+2. Baca README.
+3. Identifikasi teknologi existing.
+4. Identifikasi database.
+5. Identifikasi konfigurasi.
+6. Jangan mengganti framework tanpa alasan kuat.
+7. Buat backup sebelum perubahan database.
+8. Implementasikan perubahan sekecil mungkin.
+9. Jalankan test.
+10. Perbaiki error.
+11. Tampilkan ringkasan perubahan.
+
+Jangan hanya memberikan potongan kode atau tutorial.
+
+Jika memiliki izin terhadap workspace/repository, IMPLEMENTASIKAN perubahan langsung ke project.
+
+Setelah implementasi, laporkan:
+
+FILES CREATED:
+...
+
+FILES MODIFIED:
+...
+
+DATABASE CHANGES:
+...
+
+TEST RESULTS:
+...
+
+WARNINGS:
+...
+
+NEXT STEP:
+...
+
+---
+
+# 30. HASIL AKHIR
+
+Target akhirnya adalah aplikasi:
+
+UPJKP MONITORING CENTER
+
+yang dapat digunakan untuk:
+
+✓ monitoring laporan rekomendasi  
+✓ deadline laporan 30 hari  
+✓ checkpoint koreksi  
+✓ NET/RP27  
+✓ reminder otomatis  
+✓ notifikasi penagihan  
+✓ monitoring laboratorium daun/tanah  
+✓ monitoring KCD  
+✓ lampiran dosis pemupukan  
+✓ upload/link dokumen OneDrive  
+✓ inventory JID  
+✓ penjualan Ombrometer  
+✓ penjualan Gelas Ukur  
+✓ penjualan AWS  
+✓ katalog produk  
+✓ monitoring pengadaan  
+✓ monitoring pendapatan  
+✓ billing center  
+✓ monitoring piutang  
+✓ monitoring kegiatan pelatihan  
+✓ jadwal tenaga ahli  
+✓ deteksi konflik tenaga ahli  
+✓ inventory souvenir  
+✓ notification center  
+✓ audit trail  
+✓ backup database  
+✓ version control GitHub
+
+PRINSIP UTAMA:
+
+DATA TIDAK BOLEH HILANG.
+
+Riwayat kegiatan harus tetap tersedia meskipun dashboard diperbarui berkali-kali.
+
+OneDrive adalah sumber penyimpanan database/dokumen dan GitHub adalah sumber version control kode.
+
+Mulai dari PHASE 1.
+
+Pertama, inspect environment dan repository yang tersedia. Kemudian tampilkan rancangan database/tabel yang akan dibuat. Setelah itu implementasikan PHASE 1 dan lakukan validasi sebelum melanjutkan ke PHASE 2.
