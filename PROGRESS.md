@@ -3,7 +3,7 @@
 ## Status terakhir
 
 - Status: **Berjalan**
-- Deployment aktif: **@16**
+- Deployment aktif: **@17**
 - URL aplikasi: `https://script.google.com/macros/s/AKfycbxT0gids44DaWESXxIDj6Mrjc146qhsqoq-4b-605j3bLrSfjyCNLELdbIm_FN0fJP-6A/exec`
 - Branch GitHub: `main`
 - Commit implementasi terbaru: `30c97ea`
@@ -20,6 +20,8 @@
 - Dashboard khusus Administrasi.
 - Format inti Rekomendasi Pemupukan mengikuti Bantuan Teknis: Kegiatan, Monitoring Laporan, Regional, serta Tim & SPJ.
 - Filter laporan, regional, dan tim dipisahkan per subbagian agar data tidak bercampur.
+- Dashboard khusus tersedia untuk seluruh subbagian: Rekomendasi & JID, Bantuan Teknis, Pelatihan, dan Administrasi.
+- Dashboard subbagian dan Dashboard Utama membaca database master yang sama serta teragregasi otomatis.
 - Repository GitHub privat.
 - Static test Apps Script lulus.
 

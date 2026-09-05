@@ -215,7 +215,7 @@ document.addEventListener('click',async event=>{
 });
 
 document.addEventListener('change',async event=>{
-  if (event.target.id==='dashboard-year') {state.year=event.target.value;await refresh()}
+  if (event.target.id==='dashboard-year'||event.target.id==='unit-year') {state.year=event.target.value;await refresh()}
   if (event.target.id==='report-status-filter') {state.filterStatus=event.target.value;await render()}
 });
 

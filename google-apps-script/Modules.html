@@ -11,19 +11,87 @@ async function renderActivities(filters={}) {
   content.innerHTML=`${pageHead(title[0],title[1],'<button class="button secondary" data-action="database">Buka Database</button><button class="button primary" data-action="create">+ Catat Kegiatan</button>')}${toolbar()}<section class="panel">${sectionHead(`${angka.format(data.total)} kegiatan`,'Record aktif dari Google Sheet master')}${activityTable(data.items)}</section>`;
 }
 
+function unitYearSelect() {
+  const options=(state.dashboard?.years||[]).map(year=>`<option value="${year}" ${String(year)===String(state.year)?'selected':''}>${year}</option>`).join('');
+  return `<select id="unit-year" class="select" aria-label="Filter tahun"><option value="">Semua Tahun</option>${options}</select>`;
+}
+
+function unitRegionalRows(reports) {
+  const grouped={};
+  reports.forEach(row=>{
+    const key=String(row.regional||'Belum ditentukan');
+    if(!grouped[key])grouped[key]={regional:key,total:0,selesai:0,terlambat:0};
+    grouped[key].total+=1;
+    if(row.status_deadline==='SELESAI'||['NET / RP27','SELESAI'].includes(String(row.status_hitung||'').toUpperCase()))grouped[key].selesai+=1;
+    if(row.status_deadline==='TERLAMBAT')grouped[key].terlambat+=1;
+  });
+  return Object.values(grouped).sort((a,b)=>a.regional.localeCompare(b.regional)).map(item=>Object.assign(item,{completion:item.total?Math.round(item.selesai/item.total*100):0}));
+}
+
+function unitReportSegments(reports) {
+  const segments={draft:0,process:0,warning:0,late:0,done:0};
+  reports.forEach(row=>{
+    const deadline=String(row.status_deadline||'').toUpperCase(),status=String(row.status_hitung||'').toUpperCase();
+    if(deadline==='SELESAI'||['NET / RP27','SELESAI'].includes(status))segments.done+=1;
+    else if(deadline==='TERLAMBAT')segments.late+=1;
+    else if(['PERHATIAN','SEGERA SELESAIKAN'].includes(deadline))segments.warning+=1;
+    else if(!row.tanggal_draft_masuk||status.includes('DRAFT')||status==='BELUM DIMULAI')segments.draft+=1;
+    else segments.process+=1;
+  });
+  return segments;
+}
+
+async function unitOperationalCards(code,activities,reports,regional) {
+  if(code==='RPJID') {
+    const [labs,doses,products,jid]=await Promise.all([getModule('labs'),getModule('doses'),getModule('products'),getModule('jid')]);
+    return [
+      {label:'Analisis aktif',value:labs.items.filter(row=>String(row.status||'').toUpperCase()!=='SELESAI').length,view:'labs'},
+      {label:'Lampiran dosis',value:doses.total,view:'doses'},
+      {label:'Stok produk kritis',value:products.items.filter(row=>row.kritis).length,view:'jid'},
+      {label:'Pendapatan JID',value:compact(jid.items.reduce((sum,row)=>sum+Number(row.nilai||0),0)),view:'jid'},
+    ];
+  }
+  if(code==='BT') {
+    const team=await getModule('team'),activityIds=new Set(activities.map(row=>String(row.activity_id)));
+    const members=team.items.filter(row=>activityIds.has(String(row.activity_id)));
+    return [
+      {label:'Regional aktif',value:regional.length,view:'regional'},
+      {label:'Anggota tim',value:members.length,view:'bt-team'},
+      {label:'Perlu perhatian',value:reports.filter(row=>['PERHATIAN','SEGERA SELESAIKAN'].includes(row.status_deadline)).length,view:'reports-bt'},
+      {label:'Kegiatan aktif',value:activities.filter(row=>String(row.status||'').toUpperCase()!=='SELESAI').length,view:'activities-bt'},
+    ];
+  }
+  const data=await trainingData(),now=new Date();
+  return [
+    {label:'Kegiatan pelatihan',value:data.training.total,view:'training'},
+    {label:'Pelatihan mendatang',value:data.training.items.filter(row=>row.tanggal_mulai&&new Date(row.tanggal_mulai+'T00:00:00+07:00')>=now).length,view:'calendar'},
+    {label:'Penugasan tenaga ahli',value:data.schedules.items.length,view:'experts'},
+    {label:'Stok souvenir kurang',value:data.low,view:'souvenirs'},
+  ];
+}
+
 async function renderUnit(code) {
-  const meta=unitMeta[code],card=state.dashboard.subsections.find(item=>item.code===code)||{count:0,done:0,completion:0,revenue:0};
-  const data=await getModule('activities',{subbagian:code});
-  const shortcuts={RPJID:[['activities-rp','Daftar Kegiatan'],['reports-rp','Monitoring Laporan'],['regional-rp','Perusahaan'],['rp-team','Tim & SPJ'],['labs','Laboratorium'],['jid','JID & Inventori']],BT:[['activities-bt','Daftar Kegiatan'],['reports-bt','Monitoring Laporan'],['regional','Perusahaan'],['bt-team','Tim & SPJ']],PLT:[['training','Kegiatan'],['calendar','Kalender'],['experts','Tenaga Ahli']],ADM:[['billing','Billing Center'],['companies','Perusahaan'],['validation','Validasi']]}[code];
-  content.innerHTML=`${pageHead(meta.label,titles[meta.view][1],'<button class="button primary" data-action="create">+ Catat Kegiatan</button>')}<section class="summary"><article><small>Kegiatan</small><strong>${card.count}</strong></article><article class="success"><small>Laporan Selesai</small><strong>${card.done}</strong></article><article><small>Nilai Kegiatan</small><strong>${compact(card.revenue)}</strong></article><article><small>Penyelesaian</small><strong>${card.completion}%</strong></article></section><div class="toolbar">${shortcuts.map(item=>`<button class="button secondary" data-view="${item[0]}">${item[1]}</button>`).join('')}<span class="spacer"></span><input class="input" data-role="query" value="${esc(state.query)}" placeholder="Cari kegiatan…"><button class="button secondary" data-action="search">Cari</button></div><section class="panel">${sectionHead('Aktivitas Subbagian',`${data.total} kegiatan ditemukan`)}${activityTable(data.items)}</section>`;
+  const meta=unitMeta[code],year=state.year||'',card=state.dashboard.subsections.find(item=>item.code===code)||{count:0,done:0,completion:0,revenue:0};
+  const [activities,reports]=await Promise.all([getModule('activities',{subbagian:code,tahun:year}),getModule('reports',{subbagian:code,tahun:year})]);
+  const regional=unitRegionalRows(reports.items),segments=unitReportSegments(reports.items),companies=new Set(activities.items.map(row=>String(row.perusahaan||'').trim()).filter(Boolean));
+  const done=segments.done,late=segments.late,active=Math.max(0,reports.total-done),reportsView=code==='RPJID'?'reports-rp':code==='BT'?'reports-bt':'';
+  const shortcuts={RPJID:[['activities-rp','Daftar Kegiatan'],['reports-rp','Monitoring Laporan'],['regional-rp','Perusahaan'],['rp-team','Tim & SPJ'],['labs','Laboratorium'],['jid','JID & Inventori']],BT:[['activities-bt','Daftar Kegiatan'],['reports-bt','Monitoring Laporan'],['regional','Perusahaan'],['bt-team','Tim & SPJ']],PLT:[['training','Kegiatan'],['calendar','Kalender'],['experts','Tenaga Ahli'],['souvenirs','Souvenir']]}[code];
+  const operational=await unitOperationalCards(code,activities.items,reports.items,regional);
+  const regionalRows=regional.length?regional.slice(0,10).map(row=>`<tr><td><strong>${esc(row.regional)}</strong></td><td class="number">${row.total}</td><td class="number">${row.selesai}</td><td>${statusBadge(row.terlambat?`${row.terlambat} terlambat`:'AMAN')}</td><td>${progressBar(row.completion,`${row.completion}% selesai`)}</td></tr>`).join(''):`<tr><td colspan="5" class="row-empty">Belum ada data laporan per regional.</td></tr>`;
+  const reportItems=[{label:'Draft',value:segments.draft,color:'#7b8fa3'},{label:'Proses',value:segments.process,color:'#2196f3'},{label:'Perhatian',value:segments.warning,color:'#f59e0b'},{label:'Terlambat',value:segments.late,color:'#ef4444'},{label:'Selesai',value:segments.done,color:'#14b8a6'}];
+  const operations=operational.map(item=>`<button class="attention-item" data-view="${item.view}"><span class="attention-dot"></span><span><strong>${esc(item.value)}</strong><small>${esc(item.label)}</small></span><span class="mini-status">BUKA</span></button>`).join('');
+  const headingActions=`${statusBadge('TERHUBUNG DASHBOARD UTAMA')} ${unitYearSelect()}<button class="button secondary" data-view="dashboard">Dashboard Utama</button><button class="button primary" data-action="create">+ Catat Kegiatan</button>`;
+  content.innerHTML=`${pageHead('Dashboard '+meta.short,`Ringkasan ${meta.label} yang terhubung otomatis dengan Dashboard Utama`,headingActions)}<section class="summary"><article><small>Total Kegiatan</small><strong>${angka.format(activities.total)}</strong></article><article><small>Perusahaan</small><strong>${angka.format(companies.size)}</strong></article><article><small>Laporan Aktif</small><strong>${angka.format(active)}</strong></article><article class="success"><small>Laporan Selesai</small><strong>${angka.format(done)}</strong></article><article class="danger"><small>Terlambat</small><strong>${angka.format(late)}</strong></article><article><small>Nilai Kegiatan</small><strong>${compact(card.revenue)}</strong></article></section><div class="toolbar">${shortcuts.map(item=>`<button class="button secondary" data-view="${item[0]}">${item[1]}</button>`).join('')}<span class="spacer"></span><input class="input" data-role="query" value="${esc(state.query)}" placeholder="Cari kegiatan…"><button class="button secondary" data-action="search">Cari</button></div><section class="chart-grid"><article class="panel chart-panel">${sectionHead('Progres per Regional',`${regional.length} regional/perusahaan terpantau`)}<div class="tablewrap"><table><thead><tr><th>Regional</th><th>Total</th><th>Selesai</th><th>Status</th><th>Capaian</th></tr></thead><tbody>${regionalRows}</tbody></table></div></article><article class="panel chart-panel">${sectionHead('Status Laporan','Distribusi progres unit')}${donutChart(reports.total,'Laporan',reportItems,reportsView)}</article><article class="panel chart-panel">${sectionHead('Indikator Unit','Data operasional terkait')}<div class="attention">${operations}</div></article></section><section class="panel">${sectionHead('Aktivitas Terbaru',`${activities.total} kegiatan dari database master`,statusBadge('DATA MASTER'))}${activityTable(activities.items.slice(0,50))}</section>`;
 }
 
 async function renderAdminDashboard() {
-  const [activities,billing,correspondence,rkap]=await Promise.all([getModule('activities',{subbagian:'ADM'}),getModule('billing'),getModule('correspondence'),getModule('rkap',{subbagian:'ADM'})]);
+  const year=state.year||'';
+  const [activities,billing,correspondence,rkap]=await Promise.all([getModule('activities',{subbagian:'ADM',tahun:year}),getModule('billing'),getModule('correspondence'),getModule('rkap',{subbagian:'ADM',tahun:year})]);
   const items=activities.items, totalValue=items.reduce((s,r)=>s+Number(r.nilai_kontrak||0),0), invoiced=billing.items.filter(r=>r.nomor_invoice).length, receivable=billing.items.reduce((s,r)=>s+Number(r.piutang||0),0), incoming=correspondence.items.filter(r=>String(r.jenis_surat||'').toLowerCase().includes('masuk')).length;
   const rows=items.length?items.slice(0,60).map(r=>`<tr><td class="mono">${esc(r.display_id||r.activity_id)}</td><td><strong>${esc(r.perusahaan||'—')}</strong><br><span class="muted">${esc(r.jenis_kegiatan||'Administrasi')}</span></td><td>${dateText(r.tanggal_surat_masuk)}</td><td>${esc(r.no_surat_masuk||'—')}</td><td>${esc(r.pic||'—')}</td><td class="number">${money(r.nilai_kontrak)}</td><td>${statusBadge(r.status)}</td></tr>`).join(''):`<tr><td colspan="7" class="row-empty">Belum ada data Administrasi. Gunakan tombol sinkronisasi pada Import / Export.</td></tr>`;
   const stages=[['Surat masuk',incoming],['SPK',items.filter(r=>r.no_spk).length],['Pelaksanaan',items.filter(r=>r.tanggal_mulai).length],['Laporan',items.filter(r=>r.status&&String(r.status).toUpperCase()!=='DRAFT').length],['Penagihan',billing.items.length],['Pembayaran',billing.items.filter(r=>String(r.status_hitung||'').toUpperCase()==='LUNAS').length],['Honor',0],['Dokumen',0]];
-  content.innerHTML=`${pageHead('Administrasi','Dashboard administrasi pekerjaan konsultansi','<button class="button secondary" data-view="correspondence">Surat Masuk</button><button class="button primary" data-action="create">+ Catat Surat Masuk</button>')}<section class="summary"><article><small>Total Kegiatan</small><strong>${angka.format(items.length)}</strong></article><article><small>Surat Masuk</small><strong>${angka.format(incoming)}</strong></article><article><small>Nilai Kegiatan</small><strong>${compact(totalValue)}</strong></article><article><small>Total Invoice</small><strong>${angka.format(invoiced)}</strong></article><article class="danger"><small>Piutang</small><strong>${compact(receivable)}</strong></article><article><small>Target RKAP</small><strong>${compact(rkap.items.reduce((s,r)=>s+Number(r.nilai||0),0))}</strong></article></section><div class="toolbar"><input class="input" data-role="query" value="${esc(state.query)}" placeholder="Cari perusahaan, ID, nomor surat, lokasi…"><button class="button secondary" data-action="search">Cari</button><button class="button secondary" data-view="billing">Billing</button><button class="button secondary" data-view="rkap">Atur RKAP</button><button class="button secondary" data-view="documents">Berkas PDF</button></div><section class="panel" style="margin-bottom:12px">${sectionHead('Tahapan Administrasi','Progress pengisian delapan tahap per sumber data')}<div class="stage-grid">${stages.map(s=>`<article class="detail-card"><small>${s[0]}</small><strong>${angka.format(s[1])}</strong><span class="muted">record terisi</span></article>`).join('')}</div></section><section class="panel">${sectionHead('Daftar Pekerjaan Administrasi',`${items.length} record dari Google Sheet master`)}<div class="tablewrap"><table><thead><tr><th>ID</th><th>Perusahaan / Jenis</th><th>Tanggal Masuk</th><th>No Surat</th><th>PIC</th><th>Nilai</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  const headingActions=`${statusBadge('TERHUBUNG DASHBOARD UTAMA')} ${unitYearSelect()}<button class="button secondary" data-view="dashboard">Dashboard Utama</button><button class="button secondary" data-view="correspondence">Surat Masuk</button><button class="button primary" data-action="create">+ Catat Surat Masuk</button>`;
+  content.innerHTML=`${pageHead('Dashboard Administrasi','Dashboard administrasi yang terhubung otomatis dengan Dashboard Utama',headingActions)}<section class="summary"><article><small>Total Kegiatan</small><strong>${angka.format(items.length)}</strong></article><article><small>Surat Masuk</small><strong>${angka.format(incoming)}</strong></article><article><small>Nilai Kegiatan</small><strong>${compact(totalValue)}</strong></article><article><small>Total Invoice</small><strong>${angka.format(invoiced)}</strong></article><article class="danger"><small>Piutang</small><strong>${compact(receivable)}</strong></article><article><small>Target RKAP</small><strong>${compact(rkap.items.reduce((s,r)=>s+Number(r.nilai||0),0))}</strong></article></section><div class="toolbar"><span class="badge success">DATA MASTER TERINTEGRASI</span><input class="input" data-role="query" value="${esc(state.query)}" placeholder="Cari perusahaan, ID, nomor surat, lokasi…"><button class="button secondary" data-action="search">Cari</button><button class="button secondary" data-view="billing">Billing</button><button class="button secondary" data-view="rkap">Atur RKAP</button><button class="button secondary" data-view="documents">Berkas PDF</button></div><section class="panel" style="margin-bottom:12px">${sectionHead('Tahapan Administrasi','Progress pengisian delapan tahap per sumber data')}<div class="stage-grid">${stages.map(s=>`<article class="detail-card"><small>${s[0]}</small><strong>${angka.format(s[1])}</strong><span class="muted">record terisi</span></article>`).join('')}</div></section><section class="panel">${sectionHead('Daftar Pekerjaan Administrasi',`${items.length} record dari Google Sheet master`)}<div class="tablewrap"><table><thead><tr><th>ID</th><th>Perusahaan / Jenis</th><th>Tanggal Masuk</th><th>No Surat</th><th>PIC</th><th>Nilai</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 
 function filterReports(items) {

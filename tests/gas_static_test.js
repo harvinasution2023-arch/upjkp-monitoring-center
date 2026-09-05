@@ -33,6 +33,9 @@ for (const include of ["include('Styles')", "include('Components')", "include('D
 for (const view of ['activities-rp', 'reports-rp', 'regional-rp', 'rp-team', 'activities-bt', 'reports-bt', 'regional', 'bt-team']) {
   if (!index.includes(`data-view="${view}"`)) throw new Error(`Navigasi subbagian tidak lengkap: ${view}`);
 }
+for (const view of ['rpjid', 'bt', 'plt', 'admin']) {
+  if (!index.includes(`data-view="${view}"`)) throw new Error(`Dashboard subbagian tidak ditemukan: ${view}`);
+}
 
 const styles = fs.readFileSync(path.join(root, 'Styles.html'), 'utf8').toLowerCase();
 for (const token of ['--bg:#f5f8fc', '--card:#fff', '--navy:#123a63', '.hero-row', '.kpis', '.sidebar']) {
@@ -48,6 +51,8 @@ for (const label of ['Total Kegiatan', 'Laporan Aktif', 'Laporan Terlambat', 'La
 const modules = fs.readFileSync(path.join(root, 'Modules.html'), 'utf8');
 if (!modules.includes("renderRegional(workflow='UMUM',subbagian='BT')")) throw new Error('Ringkasan regional per workflow tidak ditemukan');
 if (!modules.includes('renderTeam(subbagian,kategori,key)')) throw new Error('Tim & SPJ per subbagian tidak ditemukan');
+if (!modules.includes('unitOperationalCards(code,activities,reports,regional)')) throw new Error('Indikator dashboard subbagian tidak ditemukan');
+if (!modules.includes('TERHUBUNG DASHBOARD UTAMA')) throw new Error('Koneksi dashboard subbagian ke dashboard utama tidak ditemukan');
 
 const dashboardService = fs.readFileSync(path.join(root, 'DashboardService.gs'), 'utf8');
 if (!dashboardService.includes('subbagian: activity.subbagian')) throw new Error('Relasi laporan ke subbagian kegiatan tidak ditemukan');

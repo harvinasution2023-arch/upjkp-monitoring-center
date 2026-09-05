@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-09-05 — v2.0.0
+
+- Menambahkan dashboard khusus Rekomendasi & JID, Bantuan Teknis, Pelatihan, dan Administrasi.
+- Menghubungkan seluruh dashboard subbagian ke agregasi Dashboard Utama melalui database master yang sama.
+- Menambahkan KPI kegiatan, perusahaan, laporan aktif/selesai/terlambat, nilai kegiatan, status laporan, serta progres regional.
+- Menambahkan indikator operasional khusus untuk setiap subbagian.
+- Menambahkan filter tahun dan pintasan kembali ke Dashboard Utama.
+- Memperbarui Web App aktif ke deployment `@17`.
+
 ## 2026-09-05 — v1.9.1
 
 - Mengganti label menu **Regional** menjadi **Perusahaan** pada Rekomendasi Pemupukan dan Bantuan Teknis.
