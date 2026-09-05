@@ -6,7 +6,7 @@
 - Deployment aktif: **@15**
 - URL aplikasi: `https://script.google.com/macros/s/AKfycbxT0gids44DaWESXxIDj6Mrjc146qhsqoq-4b-605j3bLrSfjyCNLELdbIm_FN0fJP-6A/exec`
 - Branch GitHub: `main`
-- Commit terakhir sinkronisasi: `4b0b81a`
+- Commit implementasi terbaru: `30c97ea`
 
 ## Sudah selesai
 
