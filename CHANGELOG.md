@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-05 — v1.9.1
+
+- Mengganti label menu **Regional** menjadi **Perusahaan** pada Rekomendasi Pemupukan dan Bantuan Teknis.
+- Memperbarui Web App aktif ke deployment `@16`.
+
 ## 2026-09-05 — v1.9.0
 
 - Menyamakan format inti Rekomendasi Pemupukan dengan Bantuan Teknis.
