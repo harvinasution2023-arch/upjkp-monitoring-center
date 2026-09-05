@@ -260,7 +260,17 @@ function getModuleData(moduleName, options) {
   const tableName = tableMap[moduleName];
   if (!tableName) throw new Error('Modul tidak dikenal: ' + moduleName);
   let rows = getRows_(tableName, false);
-  if (moduleName === 'reports') rows = rows.map(reportProgress_);
+  if (moduleName === 'reports') {
+    const activityMap = {};
+    getRows_('KEGIATAN', false).forEach(function (activity) { activityMap[String(activity.activity_id)] = activity; });
+    rows = rows.map(function (row) {
+      const activity = activityMap[String(row.activity_id)] || {};
+      return Object.assign({}, reportProgress_(row), {
+        subbagian: activity.subbagian || CATEGORY_TO_SUBBAGIAN[activity.kategori] || '',
+        kategori: activity.kategori || '',
+      });
+    });
+  }
   if (moduleName === 'billing') rows = rows.map(billingProgress_);
   if (moduleName === 'products') rows = stockProducts_(rows, getRows_('STOK_JID', false));
   const query = String(options.query || '').trim().toLowerCase();

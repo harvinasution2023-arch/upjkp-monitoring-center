@@ -30,6 +30,9 @@ const index = fs.readFileSync(path.join(root, 'Index.html'), 'utf8');
 for (const include of ["include('Styles')", "include('Components')", "include('Dashboard')", "include('Modules')", "include('JavaScript')"]) {
   if (!index.includes(include)) throw new Error(`Template include hilang: ${include}`);
 }
+for (const view of ['activities-rp', 'reports-rp', 'regional-rp', 'rp-team', 'activities-bt', 'reports-bt', 'regional', 'bt-team']) {
+  if (!index.includes(`data-view="${view}"`)) throw new Error(`Navigasi subbagian tidak lengkap: ${view}`);
+}
 
 const styles = fs.readFileSync(path.join(root, 'Styles.html'), 'utf8').toLowerCase();
 for (const token of ['--bg:#f5f8fc', '--card:#fff', '--navy:#123a63', '.hero-row', '.kpis', '.sidebar']) {
@@ -41,6 +44,13 @@ const dashboard = fs.readFileSync(path.join(root, 'Dashboard.html'), 'utf8');
 for (const label of ['Total Kegiatan', 'Laporan Aktif', 'Laporan Terlambat', 'Laporan NET', 'Siap Penagihan', 'Piutang', 'Pendapatan', 'Kegiatan Pelatihan']) {
   if (!dashboard.includes(label)) throw new Error(`KPI dashboard hilang: ${label}`);
 }
+
+const modules = fs.readFileSync(path.join(root, 'Modules.html'), 'utf8');
+if (!modules.includes("renderRegional(workflow='UMUM',subbagian='BT')")) throw new Error('Ringkasan regional per workflow tidak ditemukan');
+if (!modules.includes('renderTeam(subbagian,kategori,key)')) throw new Error('Tim & SPJ per subbagian tidak ditemukan');
+
+const dashboardService = fs.readFileSync(path.join(root, 'DashboardService.gs'), 'utf8');
+if (!dashboardService.includes('subbagian: activity.subbagian')) throw new Error('Relasi laporan ke subbagian kegiatan tidak ditemukan');
 for (const section of ['Empat Subbagian UPJKP', 'Perlu Perhatian', 'Pendapatan vs RKAP', 'Laporan Terbaru', 'Kegiatan Pelatihan Mendatang']) {
   if (!dashboard.includes(section)) throw new Error(`Bagian dashboard hilang: ${section}`);
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-05 — v1.9.0
+
+- Menyamakan format inti Rekomendasi Pemupukan dengan Bantuan Teknis.
+- Menambahkan menu Kegiatan, Regional, serta Tim & SPJ untuk Rekomendasi Pemupukan.
+- Mempertahankan modul khusus Laboratorium, Lampiran Dosis, JID, dan Katalog Produk.
+- Memisahkan data laporan, regional, dan tim berdasarkan subbagian terkait.
+- Memperbarui Web App aktif ke deployment `@15`.
+
 ## 2026-09-04 — v1.8.0
 
 - Menambahkan sinkronisasi sheet **Tim** Administrasi ke `TIM_SPJ`.
@@ -29,4 +37,3 @@
 - Menambahkan template empat subbagian.
 - Menambahkan import template ke database master.
 - Menambahkan desain dashboard light enterprise.
-

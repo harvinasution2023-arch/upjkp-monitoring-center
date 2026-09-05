@@ -3,7 +3,7 @@
 ## Status terakhir
 
 - Status: **Berjalan**
-- Deployment aktif: **@13**
+- Deployment aktif: **@15**
 - URL aplikasi: `https://script.google.com/macros/s/AKfycbxT0gids44DaWESXxIDj6Mrjc146qhsqoq-4b-605j3bLrSfjyCNLELdbIm_FN0fJP-6A/exec`
 - Branch GitHub: `main`
 - Commit terakhir sinkronisasi: `4b0b81a`
@@ -18,6 +18,8 @@
 - Sinkronisasi Administrasi: Tim dan Laporan.
 - Histori checkpoint laporan.
 - Dashboard khusus Administrasi.
+- Format inti Rekomendasi Pemupukan mengikuti Bantuan Teknis: Kegiatan, Monitoring Laporan, Regional, serta Tim & SPJ.
+- Filter laporan, regional, dan tim dipisahkan per subbagian agar data tidak bercampur.
 - Repository GitHub privat.
 - Static test Apps Script lulus.
 
@@ -35,4 +37,3 @@
 - Tambahkan sumber RPJID dan Pelatihan jika sudah tersedia.
 - Jika diperlukan, tambahkan formulir edit detail delapan tahap langsung dari UI.
 - Atur akses deployment menjadi **Anyone with Google account** untuk pengguna internal.
-

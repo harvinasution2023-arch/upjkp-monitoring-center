@@ -25,6 +25,7 @@ const titles={
   admin:['Administrasi','Basis data, surat, dokumen, billing, RKAP, validasi, dan audit'],
   'activities-admin':['Daftar Pekerjaan Administrasi','Pekerjaan konsultansi dan tahapan administrasi'],
   activities:['Daftar Kegiatan','Seluruh kegiatan terintegrasi dalam satu basis data'],
+  'activities-rp':['Kegiatan Rekomendasi Pemupukan','Daftar pekerjaan rekomendasi per perusahaan, kebun, dan regional'],
   'activities-bt':['Kegiatan Bantuan Teknis','Daftar pekerjaan lapangan dan dukungan teknis'],
   'reports-rp':['Monitoring Laporan Rekomendasi','Deadline 30 hari, tujuh checkpoint, NET, dan RP27'],
   'reports-bt':['Monitoring Laporan Bantuan Teknis','Draft, koreksi, revisi, cetak, dan pengiriman'],
@@ -38,6 +39,7 @@ const titles={
   correspondence:['Surat Masuk','Korespondensi dan dokumen kegiatan'],
   rkap:['RKAP','Target pendapatan per subbagian dan periode'],
   documents:['Dokumen','Arsip dokumen lintas modul dan versi'],
+  'rp-team':['Tim & SPJ Rekomendasi','Tim pelaksana, HK, panjar, dan realisasi SPJ rekomendasi'],
   'bt-team':['Tim & SPJ','Tim pelaksana, HK, panjar, dan realisasi SPJ'],
   validation:['Validasi & Audit','Pemeriksaan kualitas data dan jejak perubahan'],
   audit:['Audit Log','Riwayat perubahan database yang dapat ditelusuri'],
@@ -99,10 +101,11 @@ async function render() {
       case 'plt': await renderUnit('PLT'); break;
       case 'admin': await renderAdminDashboard(); break;
       case 'activities': await renderActivities(); break;
+      case 'activities-rp': await renderActivities({subbagian:'RPJID',kategori:'RP'}); break;
       case 'activities-bt': await renderActivities({subbagian:'BT'}); break;
       case 'activities-admin': await renderActivities({subbagian:'ADM'}); break;
-      case 'reports-rp': await renderReports('RP'); break;
-      case 'reports-bt': await renderReports('UMUM'); break;
+      case 'reports-rp': await renderReports('RP','RPJID'); break;
+      case 'reports-bt': await renderReports('UMUM','BT'); break;
       case 'report-detail': await renderReportDetail(state.selectedRecord); break;
       case 'labs': await renderLabs(); break;
       case 'jid': await renderJid(false); break;
@@ -110,7 +113,8 @@ async function render() {
       case 'training': await renderTraining(false); break;
       case 'calendar': await renderTraining(true); break;
       case 'souvenirs': await renderSouvenirs(); break;
-      case 'regional': await renderRegional(); break;
+      case 'regional-rp': await renderRegional('RP','RPJID'); break;
+      case 'regional': await renderRegional('UMUM','BT'); break;
       case 'billing': await renderBilling(); break;
       case 'experts': await renderSimple('experts','experts',[{key:'expert_id',label:'ID',cls:'mono'},{key:'nama',label:'Nama',render:value=>`<strong>${esc(value)}</strong>`},{key:'bidang_keahlian',label:'Bidang Keahlian'},{key:'kontak',label:'Kontak'},{key:'status_aktif',label:'Status',render:value=>statusBadge(String(value).toUpperCase()==='YA'?'AKTIF':'TIDAK AKTIF')}]); break;
       case 'companies': await renderSimple('companies','companies',[{key:'company_id',label:'ID',cls:'mono'},{key:'nama',label:'Perusahaan',render:value=>`<strong>${esc(value)}</strong>`},{key:'jenis_instansi',label:'Instansi'},{key:'regional',label:'Regional'},{key:'pic',label:'PIC'},{key:'status_aktif',label:'Status',render:value=>statusBadge(String(value).toUpperCase()==='YA'?'AKTIF':'TIDAK AKTIF')}]); break;
@@ -118,7 +122,8 @@ async function render() {
       case 'correspondence': await renderSimple('correspondence','correspondence',[{key:'correspondence_id',label:'ID',cls:'mono'},{key:'jenis_surat',label:'Jenis'},{key:'nomor_surat',label:'Nomor Surat'},{key:'tanggal',label:'Tanggal',render:dateText},{key:'perihal',label:'Perihal'},{key:'activity_id',label:'Kegiatan',cls:'mono'}]); break;
       case 'rkap': await renderSimple('rkap','rkap',[{key:'rkap_id',label:'ID',cls:'mono'},{key:'tahun',label:'Tahun'},{key:'subbagian',label:'Subbagian',render:value=>statusBadge(unitMeta[value]?.short||value)},{key:'bulan',label:'Bulan'},{key:'nilai',label:'Target',cls:'number',render:money}]); break;
       case 'documents': await renderSimple('documents','documents',[{key:'document_id',label:'ID',cls:'mono'},{key:'module',label:'Modul'},{key:'nama_asli',label:'Nama Dokumen',render:value=>`<strong>${esc(value)}</strong>`},{key:'tipe',label:'Tipe'},{key:'versi',label:'Versi'},{key:'tahap',label:'Tahap'},{key:'pic',label:'PIC'}]); break;
-      case 'bt-team': await renderSimple('team','bt-team',[{key:'team_id',label:'ID',cls:'mono'},{key:'nama',label:'Nama',render:value=>`<strong>${esc(value)}</strong>`},{key:'peran',label:'Peran'},{key:'hk',label:'HK',cls:'number'},{key:'nominal_hk',label:'Nominal HK',cls:'number',render:money},{key:'total_spj',label:'Total SPJ',cls:'number',render:money},{key:'panjar',label:'Panjar',cls:'number',render:money},{key:'realisasi_panjar',label:'Realisasi',cls:'number',render:money}]); break;
+      case 'rp-team': await renderTeam('RPJID','RP','rp-team'); break;
+      case 'bt-team': await renderTeam('BT','BT','bt-team'); break;
       case 'validation': await renderValidation(); break;
       case 'audit': await renderSimple('audit','audit',[{key:'timestamp',label:'Waktu',render:dateText},{key:'actor',label:'Aktor'},{key:'action',label:'Aksi',render:statusBadge},{key:'table_name',label:'Tabel',cls:'mono'},{key:'record_id',label:'Record',cls:'mono'},{key:'reason',label:'Alasan'}]); break;
       case 'database': renderDatabaseCenter(); break;

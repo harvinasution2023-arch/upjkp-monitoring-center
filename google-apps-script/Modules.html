@@ -14,7 +14,7 @@ async function renderActivities(filters={}) {
 async function renderUnit(code) {
   const meta=unitMeta[code],card=state.dashboard.subsections.find(item=>item.code===code)||{count:0,done:0,completion:0,revenue:0};
   const data=await getModule('activities',{subbagian:code});
-  const shortcuts={RPJID:[['reports-rp','Monitoring Laporan'],['labs','Laboratorium'],['jid','JID & Inventori']],BT:[['activities-bt','Daftar Kegiatan'],['reports-bt','Monitoring Laporan'],['regional','Regional']],PLT:[['training','Kegiatan'],['calendar','Kalender'],['experts','Tenaga Ahli']],ADM:[['billing','Billing Center'],['companies','Perusahaan'],['validation','Validasi']]}[code];
+  const shortcuts={RPJID:[['activities-rp','Daftar Kegiatan'],['reports-rp','Monitoring Laporan'],['regional-rp','Regional'],['rp-team','Tim & SPJ'],['labs','Laboratorium'],['jid','JID & Inventori']],BT:[['activities-bt','Daftar Kegiatan'],['reports-bt','Monitoring Laporan'],['regional','Regional'],['bt-team','Tim & SPJ']],PLT:[['training','Kegiatan'],['calendar','Kalender'],['experts','Tenaga Ahli']],ADM:[['billing','Billing Center'],['companies','Perusahaan'],['validation','Validasi']]}[code];
   content.innerHTML=`${pageHead(meta.label,titles[meta.view][1],'<button class="button primary" data-action="create">+ Catat Kegiatan</button>')}<section class="summary"><article><small>Kegiatan</small><strong>${card.count}</strong></article><article class="success"><small>Laporan Selesai</small><strong>${card.done}</strong></article><article><small>Nilai Kegiatan</small><strong>${compact(card.revenue)}</strong></article><article><small>Penyelesaian</small><strong>${card.completion}%</strong></article></section><div class="toolbar">${shortcuts.map(item=>`<button class="button secondary" data-view="${item[0]}">${item[1]}</button>`).join('')}<span class="spacer"></span><input class="input" data-role="query" value="${esc(state.query)}" placeholder="Cari kegiatan…"><button class="button secondary" data-action="search">Cari</button></div><section class="panel">${sectionHead('Aktivitas Subbagian',`${data.total} kegiatan ditemukan`)}${activityTable(data.items)}</section>`;
 }
 
@@ -37,8 +37,8 @@ function filterReports(items) {
   });
 }
 
-async function renderReports(workflow) {
-  const data=await getModule('reports',{workflow}),key=workflow==='RP'?'reports-rp':'reports-bt';
+async function renderReports(workflow,subbagian) {
+  const data=await getModule('reports',{workflow,subbagian}),key=workflow==='RP'?'reports-rp':'reports-bt';
   state.currentReports=data.items;
   const items=filterReports(data.items);
   const totals={done:data.items.filter(row=>row.status_deadline==='SELESAI').length,late:data.items.filter(row=>row.status_deadline==='TERLAMBAT').length,warning:data.items.filter(row=>row.status_deadline==='PERHATIAN').length,soon:data.items.filter(row=>row.status_deadline==='SEGERA SELESAIKAN').length,safe:data.items.filter(row=>row.status_deadline==='AMAN').length};
@@ -108,10 +108,34 @@ async function renderBilling() {
   content.innerHTML=`${pageHead(...titles.billing,'<button class="button secondary" data-action="run-monitor">Periksa Jatuh Tempo</button>')}<section class="summary"><article class="warning"><small>Siap Tagih</small><strong>${ready.length}</strong></article><article><small>Total Invoice</small><strong>${invoiced.length}</strong></article><article class="danger"><small>Piutang</small><strong>${compact(receivable)}</strong></article><article class="success"><small>Lunas</small><strong>${paidRows.length}</strong></article><article><small>Nilai Tagihan</small><strong>${compact(total)}</strong></article><article><small>Dibayar</small><strong>${compact(paid)}</strong></article></section><section class="panel" style="margin-bottom:12px">${sectionHead('Aging Piutang','Saldo piutang berdasarkan umur invoice')}<div class="aging">${aging.map(item=>`<article><small>${item[0]} hari</small><strong>${compact(item[1])}</strong></article>`).join('')}</div></section><section class="panel">${sectionHead('Daftar Billing','Tagihan lintas subbagian dan status pembayaran')}<div class="tablewrap"><table><thead><tr><th>Billing ID</th><th>Perusahaan</th><th>Sumber / Kegiatan</th><th>Nilai</th><th>Invoice</th><th>Jatuh Tempo</th><th>Status</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 
-async function renderRegional() {
-  const items=state.dashboard.regional||[];
+async function renderRegional(workflow='UMUM',subbagian='BT') {
+  const data=await getModule('reports',{workflow,subbagian}),regionalMap={};
+  data.items.forEach(row=>{
+    const key=String(row.regional||'Belum ditentukan');
+    if(!regionalMap[key])regionalMap[key]={regional:key,total:0,proses:0,selesai:0,terlambat:0,completion:0};
+    const item=regionalMap[key];item.total+=1;
+    if(row.status_deadline==='SELESAI'||['NET / RP27','SELESAI'].includes(String(row.status_hitung||'').toUpperCase()))item.selesai+=1;
+    else item.proses+=1;
+    if(row.status_deadline==='TERLAMBAT')item.terlambat+=1;
+  });
+  const items=Object.values(regionalMap).sort((a,b)=>a.regional.localeCompare(b.regional));
+  items.forEach(item=>item.completion=item.total?Math.round(item.selesai/item.total*100):0);
   const rows=items.length?items.map(row=>`<tr><td><strong>${esc(row.regional)}</strong></td><td class="number">${row.total}</td><td class="number">${row.proses}</td><td class="number">${row.selesai}</td><td>${statusBadge(row.terlambat?`${row.terlambat} terlambat`:'AMAN')}</td><td>${progressBar(row.completion,`${row.completion}% selesai`)}</td></tr>`).join(''):`<tr><td colspan="6" class="row-empty">Belum ada laporan regional.</td></tr>`;
-  content.innerHTML=`${pageHead('Monitoring Regional','Kinerja laporan Bantuan Teknis per regional')}<section class="panel">${sectionHead('Progres per Regional','SLA dan tingkat penyelesaian')}<div class="tablewrap"><table><thead><tr><th>Regional</th><th>Total</th><th>Proses</th><th>Selesai</th><th>Status</th><th>Capaian</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  const label=workflow==='RP'?'Rekomendasi Pemupukan':'Bantuan Teknis';
+  content.innerHTML=`${pageHead('Monitoring Regional '+label,`Kinerja laporan ${label} per regional`)}<section class="summary"><article><small>Total Laporan</small><strong>${data.total}</strong></article><article><small>Regional Aktif</small><strong>${items.length}</strong></article><article class="success"><small>Selesai</small><strong>${items.reduce((sum,item)=>sum+item.selesai,0)}</strong></article><article class="danger"><small>Terlambat</small><strong>${items.reduce((sum,item)=>sum+item.terlambat,0)}</strong></article></section><section class="panel">${sectionHead('Progres per Regional','SLA dan tingkat penyelesaian')}<div class="tablewrap"><table><thead><tr><th>Regional</th><th>Total</th><th>Proses</th><th>Selesai</th><th>Status</th><th>Capaian</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+}
+
+async function renderTeam(subbagian,kategori,key) {
+  const [activities,team]=await Promise.all([
+    callServer('getModuleData','activities',{filters:{subbagian:subbagian,kategori:kategori},pageSize:200}),
+    getModule('team'),
+  ]);
+  const activityMap={};
+  activities.items.forEach(row=>activityMap[String(row.activity_id)]={id:row.display_id||row.activity_id,company:row.perusahaan||'',activity:row.jenis_kegiatan||''});
+  const items=team.items.filter(row=>activityMap[String(row.activity_id)]);
+  const totalHk=items.reduce((sum,row)=>sum+Number(row.hk||0),0),totalSpj=items.reduce((sum,row)=>sum+Number(row.total_spj||0),0),panjar=items.reduce((sum,row)=>sum+Number(row.panjar||0),0),realisasi=items.reduce((sum,row)=>sum+Number(row.realisasi_panjar||0),0);
+  const rows=items.length?items.map(row=>{const activity=activityMap[String(row.activity_id)]||{};return `<tr><td class="mono">${esc(row.team_id)}</td><td><strong>${esc(row.nama||'â€”')}</strong><br><span class="muted">${esc(row.peran||'â€”')}</span></td><td><span class="mono">${esc(activity.id||row.activity_id)}</span><br><span class="muted">${esc(activity.company||activity.activity||'â€”')}</span></td><td class="number">${angka.format(row.hk||0)}</td><td class="number">${money(row.nominal_hk)}</td><td class="number">${money(row.total_spj)}</td><td class="number">${money(row.panjar)}</td><td class="number">${money(row.realisasi_panjar)}</td></tr>`}).join(''):`<tr><td colspan="8" class="row-empty">Belum ada data tim dan SPJ untuk subbagian ini.</td></tr>`;
+  content.innerHTML=`${pageHead(...titles[key],'<button class="button secondary" data-action="database">Buka Database</button>')}<section class="summary"><article><small>Anggota Tim</small><strong>${items.length}</strong></article><article><small>Total HK</small><strong>${angka.format(totalHk)}</strong></article><article><small>Total SPJ</small><strong>${compact(totalSpj)}</strong></article><article><small>Panjar</small><strong>${compact(panjar)}</strong></article><article><small>Realisasi</small><strong>${compact(realisasi)}</strong></article></section>${toolbar()}<section class="panel">${sectionHead('Daftar Tim Pelaksana',`${items.length} anggota pada ${activities.total} kegiatan`)}<div class="tablewrap"><table><thead><tr><th>ID</th><th>Nama / Peran</th><th>Kegiatan</th><th>HK</th><th>Nominal HK</th><th>Total SPJ</th><th>Panjar</th><th>Realisasi</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 
 async function renderSimple(module,key,columns,options={}) {
