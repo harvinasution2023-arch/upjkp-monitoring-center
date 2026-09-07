@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="id">
+<meta charset="utf-8">
+<title>Alur Integrasi UPJKP Monitoring Center</title>
+<style>
+  html,body{margin:0;background:#eef4f8;font-family:Arial,Helvetica,sans-serif;color:#123a63}
+  svg{display:block;width:1800px;height:1200px;background:#f7fafc}
+  .title{font-size:34px;font-weight:700;fill:#123a63}.subtitle{font-size:18px;fill:#55718b}
+  .section{font-size:18px;font-weight:700;fill:#55718b;letter-spacing:1px}
+  .box{stroke-width:2}.source{fill:#e8f3fb;stroke:#3c8dbc}.admin{fill:#fff3db;stroke:#e1a62a}.master{fill:#dff5eb;stroke:#2b9b70}.dash{fill:#edf0ff;stroke:#6074c6}.support{fill:#f1eafb;stroke:#8c67b6}.auto{fill:#eaf5ef;stroke:#45966e}
+  .head{font-size:21px;font-weight:700;fill:#123a63}.body{font-size:16px;fill:#294b66}.small{font-size:14px;fill:#55718b}.table{font-size:15px;fill:#174e42}.white{fill:#fff}
+  .arrow{stroke:#53738e;stroke-width:4;fill:none;marker-end:url(#arrow)}.arrow2{stroke:#2b9b70;stroke-width:4;fill:none;marker-end:url(#arrowGreen)}
+  .pill{fill:#fff;stroke:#9fb8ca;stroke-width:1.5}.pilltext{font-size:14px;font-weight:700;fill:#365b75}
+</style>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1200">
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#53738e"/></marker>
+    <marker id="arrowGreen" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#2b9b70"/></marker>
+  </defs>
+  <text x="80" y="64" class="title">Alur Integrasi Data UPJKP Monitoring Center</text>
+  <text x="80" y="96" class="subtitle">Semua sumber dikendalikan dari Administrasi, masuk ke satu database master, lalu dibaca oleh dashboard subbagian.</text>
+
+  <text x="80" y="145" class="section">1. SUMBER INPUT UTAMA</text>
+  <rect x="80" y="165" width="370" height="145" rx="18" class="box source"/>
+  <text x="110" y="204" class="head">Rekomendasi Pemupukan</text>
+  <text x="110" y="234" class="body">Google Sheet baru · Data R1–Data SW</text>
+  <text x="110" y="264" class="small">170 kegiatan · laporan · PIC/tim</text>
+  <text x="110" y="288" class="small">ID sumber: 1FDJQIZ…</text>
+
+  <rect x="480" y="165" width="370" height="145" rx="18" class="box source"/>
+  <text x="510" y="204" class="head">Bantuan Teknis</text>
+  <text x="510" y="234" class="body">Google Sheet regional · Data R1–Data SW</text>
+  <text x="510" y="264" class="small">Kegiatan · laporan · perusahaan</text>
+  <text x="510" y="288" class="small">Format seragam regional</text>
+
+  <rect x="880" y="165" width="370" height="145" rx="18" class="box source"/>
+  <text x="910" y="204" class="head">Administrasi / Penagihan</text>
+  <text x="910" y="234" class="body">Surat masuk · kontrak · invoice</text>
+  <text x="910" y="264" class="small">Kegiatan administrasi · billing · pembayaran</text>
+  <text x="910" y="288" class="small">Sumber penagihan lama tetap dipertahankan</text>
+
+  <rect x="1280" y="165" width="440" height="145" rx="18" class="box support"/>
+  <text x="1310" y="204" class="head">Pelatihan &amp; Data Tambahan</text>
+  <text x="1310" y="234" class="body">Form aplikasi atau Template Pengisian</text>
+  <text x="1310" y="264" class="small">Pelatihan · Laboratorium · Dosis · JID · Dokumen</text>
+  <text x="1310" y="288" class="small">RKAP · Souvenir · Tenaga Ahli · Lokasi</text>
+
+  <text x="80" y="355" class="section">2. PUSAT KONTROL DI SUBBAGIAN ADMINISTRASI</text>
+  <rect x="300" y="380" width="1200" height="190" rx="22" class="box admin"/>
+  <text x="350" y="426" class="head">Administrasi → Import / Export</text>
+  <text x="350" y="458" class="body">Pusat pengendalian input, sinkronisasi, template, backup, dan validasi.</text>
+  <rect x="350" y="485" width="235" height="48" rx="24" class="pill"/><text x="383" y="516" class="pilltext">Sinkronkan Semua Sumber</text>
+  <rect x="615" y="485" width="205" height="48" rx="24" class="pill"/><text x="654" y="516" class="pilltext">Sinkronkan RP</text>
+  <rect x="850" y="485" width="205" height="48" rx="24" class="pill"/><text x="884" y="516" class="pilltext">Sinkronkan BT</text>
+  <rect x="1085" y="485" width="205" height="48" rx="24" class="pill"/><text x="1112" y="516" class="pilltext">Sinkronkan ADM</text>
+  <text x="350" y="558" class="small">Setiap proses: baca ID → tambah/perbarui → arsipkan yang tidak aktif → catat audit → refresh dashboard.</text>
+
+  <path d="M265 310 V350 H500 V380" class="arrow"/><path d="M665 310 V380" class="arrow"/><path d="M1065 310 V350 H1300 V380" class="arrow"/><path d="M1500 310 V350 H1400 V380" class="arrow"/>
+
+  <text x="80" y="620" class="section">3. DATABASE MASTER GOOGLE SHEETS</text>
+  <rect x="220" y="645" width="1360" height="220" rx="22" class="box master"/>
+  <text x="270" y="692" class="head">Satu pusat data relasional</text>
+  <text x="270" y="722" class="body">Semua dashboard membaca tabel master yang sama berdasarkan ID relasional.</text>
+  <rect x="270" y="750" width="225" height="42" rx="10" class="pill"/><text x="294" y="777" class="pilltext">MASTER_PERUSAHAAN</text>
+  <rect x="515" y="750" width="150" height="42" rx="10" class="pill"/><text x="550" y="777" class="pilltext">KEGIATAN</text>
+  <rect x="685" y="750" width="250" height="42" rx="10" class="pill"/><text x="710" y="777" class="pilltext">MONITORING_LAPORAN</text>
+  <rect x="955" y="750" width="150" height="42" rx="10" class="pill"/><text x="992" y="777" class="pilltext">TIM_SPJ</text>
+  <rect x="1125" y="750" width="170" height="42" rx="10" class="pill"/><text x="1155" y="777" class="pilltext">PENAGIHAN</text>
+  <rect x="1315" y="750" width="205" height="42" rx="10" class="pill"/><text x="1350" y="777" class="pilltext">DOKUMEN / RKAP</text>
+  <text x="270" y="830" class="table">Relasi utama: company_id → activity_id → report_id / team_id / billing_id / document_id</text>
+  <path d="M900 570 V645" class="arrow2"/>
+
+  <rect x="80" y="900" width="500" height="125" rx="18" class="box auto"/>
+  <text x="115" y="940" class="head">4. PROSES OTOMATIS</text>
+  <text x="115" y="970" class="body">Trigger edit &amp; pemeriksaan harian</text>
+  <text x="115" y="998" class="small">SLA 30 hari · status laporan · jatuh tempo · stok · notifikasi</text>
+  <path d="M420 865 V900" class="arrow2"/>
+
+  <rect x="620" y="900" width="500" height="125" rx="18" class="box auto"/>
+  <text x="655" y="940" class="head">5. PERLINDUNGAN DATA</text>
+  <text x="655" y="970" class="body">Backup sebelum penulisan · transaction lock</text>
+  <text x="655" y="998" class="small">Validasi ID · audit log · pengarsipan, bukan hapus langsung</text>
+  <path d="M900 865 V900" class="arrow2"/>
+
+  <text x="1190" y="900" class="section">6. DASHBOARD SUBBAGIAN</text>
+  <rect x="1190" y="920" width="270" height="105" rx="16" class="box dash"/><text x="1220" y="958" class="head">Rekomendasi &amp; JID</text><text x="1220" y="987" class="small">Kegiatan · laporan · dosis · lab · JID</text>
+  <rect x="1480" y="920" width="270" height="105" rx="16" class="box dash"/><text x="1510" y="958" class="head">Bantuan Teknis</text><text x="1510" y="987" class="small">Kegiatan · laporan · perusahaan</text>
+  <rect x="1190" y="1045" width="270" height="105" rx="16" class="box dash"/><text x="1220" y="1083" class="head">Pelatihan</text><text x="1220" y="1112" class="small">Agenda · kalender · ahli · souvenir</text>
+  <rect x="1480" y="1045" width="270" height="105" rx="16" class="box dash"/><text x="1510" y="1083" class="head">Administrasi</text><text x="1510" y="1112" class="small">Surat · pekerjaan · billing · RKAP</text>
+  <path d="M1580 865 V920" class="arrow2"/><path d="M1580 865 V885 H1325 V920" class="arrow2"/><path d="M1580 865 V885 H1325 V1045" class="arrow2"/><path d="M1580 865 V885 H1615 V1045" class="arrow2"/>
+
+  <text x="80" y="1145" class="subtitle">Dashboard Utama menggabungkan seluruh subbagian dari database master, bukan dari file sumber secara langsung.</text>
+</svg>
+</html>
