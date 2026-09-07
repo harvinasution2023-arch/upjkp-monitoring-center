@@ -14,6 +14,11 @@ function runDailyMonitor() {
     try { syncBantuanTeknisNow({ automatic: true, sourceSpreadsheetId: sourceId }); }
     catch (error) { console.warn('Sinkronisasi Bantuan Teknis dilewati: ' + error.message); }
   }
+  const recommendationSourceId = getProperties_().getProperty('UPJKP_RP_SOURCE_ID');
+  if (recommendationSourceId) {
+    try { syncRekomendasiNow({ automatic: true, sourceSpreadsheetId: recommendationSourceId }); }
+    catch (error) { console.warn('Sinkronisasi Rekomendasi Pemupukan dilewati: ' + error.message); }
+  }
   const adminSourceId = getProperties_().getProperty('UPJKP_ADM_SOURCE_ID');
   if (adminSourceId) {
     try { syncAdministrasiNow({ automatic: true, sourceSpreadsheetId: adminSourceId }); }

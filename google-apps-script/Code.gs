@@ -1,4 +1,12 @@
-function doGet() {
+function doGet(event) {
+  if (event && event.parameter && event.parameter.status === 'rp') {
+    return ContentService.createTextOutput(JSON.stringify(getRekomendasiSyncStatus()))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  if (isConfigured_()) {
+    try { ensureRekomendasiSourceInitialized_(); }
+    catch (error) { console.warn('Inisialisasi Rekomendasi Pemupukan dilewati: ' + error.message); }
+  }
   const template = HtmlService.createTemplateFromFile('Index');
   template.appName = APP.NAME;
   template.version = APP.VERSION;

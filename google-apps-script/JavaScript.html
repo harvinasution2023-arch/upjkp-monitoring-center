@@ -237,6 +237,23 @@ window.addEventListener('hashchange',()=>{
 });
 
 document.addEventListener('click', async event=>{
+  const button=event.target.closest('[data-action="sync-rp"]');
+  if (!button) return;
+  if (!confirm('Hubungkan sumber Google Sheet Rekomendasi Pemupukan dan sinkronkan data sekarang?')) return;
+  button.disabled=true;
+  const original=button.textContent;
+  button.textContent='Sinkronisasi...';
+  try {
+    const result=await callServer('connectRekomendasiSource');
+    toast(result.message, result.errors&&result.errors.length?'error':'success');
+    await refresh();
+    const tab=window.open(result.sourceUrl,'_blank');
+    if (!tab) toast('Izinkan pop-up untuk membuka sumber Google Sheet.','error');
+  } catch (error) { toast(error.message,'error'); }
+  finally { button.disabled=false;button.textContent=original; }
+});
+
+document.addEventListener('click', async event=>{
   const button=event.target.closest('[data-action="sync-bt"]');
   if (!button) return;
   if (!confirm('Hubungkan sumber Google Sheet Bantuan Teknis dan sinkronkan data sekarang?')) return;

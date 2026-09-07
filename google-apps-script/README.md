@@ -18,6 +18,7 @@ Versi ini berjalan sebagai Google Apps Script Web App tanpa server Python. Googl
 - `DemoData.gs` — data contoh eksplisit dan tidak menimpa tabel yang sudah berisi data.
 - `TemplateService.gs` — generator dan importer workbook template pengisian untuk empat subbagian.
 - `SourceSync.gs` — sinkronisasi Bantuan Teknis dari Google Sheet regional dan trigger perubahan otomatis.
+- `RecommendationSync.gs` — sinkronisasi kegiatan dan penagihan Rekomendasi Pemupukan dari tab `Rekapitulasi`, termasuk normalisasi angka serta tanggal.
 - `Code.gs` — entry web app dan operasi kegiatan.
 - `Index.html` — shell aplikasi, sidebar, topbar, dialog, dan SVG icon sprite.
 - `Styles.html` — design system light enterprise dan responsive breakpoints.
@@ -55,6 +56,7 @@ clasp deploy --deploymentId DEPLOYMENT_ID --description "UPJKP Monitoring Center
 5. Data demo tidak dimuat otomatis. Gunakan tombol **Muat data contoh** hanya jika diperlukan.
 6. Untuk pengisian terstruktur, buka **Import / Export → Buat Template Pengisian**. Setelah diisi, gunakan **Import Template ke Database**; ID duplikat akan dilewati dan import dicatat ke audit log.
 7. Untuk sumber Bantuan Teknis, buka **Import / Export → Hubungkan & Sinkronkan BT**. Sumber Google Sheet regional akan dipetakan ke kegiatan dan monitoring laporan; edit berikutnya disinkronkan melalui trigger dan pemeriksaan harian.
+8. Untuk Rekomendasi Pemupukan, buka **Import / Export → Sinkronkan Rekomendasi**. Baris kategori Rekomendasi dari tab `Rekapitulasi` akan dipetakan ke kegiatan, perusahaan, dan penagihan; perubahan berikutnya ditangani trigger serta pemeriksaan harian.
 
 ## Membatasi akses organisasi
 

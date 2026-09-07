@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-09-07 — v2.1.0
+
+- Menambahkan konektor khusus Rekomendasi Pemupukan ke Google Sheet operasional.
+- Memetakan kegiatan RP, monitoring laporan, histori checkpoint, tim, perusahaan, dan penagihan berdasarkan ID sumber.
+- Memastikan laporan rekomendasi menggunakan workflow `RP` agar tampil pada Dashboard Rekomendasi.
+- Mengarsipkan record laporan lama yang terduplikasi setelah migrasi ke ID laporan dashboard.
+- Menambahkan sinkronisasi manual dari Pusat Data dan sinkronisasi otomatis harian/perubahan sumber.
+- Memperbaiki pemetaan tahun, status biaya, workflow, serta relasi laporan dan tim pada konektor database operasional.
+
 ## 2026-09-05 — v2.0.0
 
 - Menambahkan dashboard khusus Rekomendasi & JID, Bantuan Teknis, Pelatihan, dan Administrasi.

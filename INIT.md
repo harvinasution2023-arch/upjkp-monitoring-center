@@ -21,13 +21,14 @@ https://script.google.com/macros/s/AKfycbxT0gids44DaWESXxIDj6Mrjc146qhsqoq-4b-60
 ## Menghubungkan sumber data
 
 1. Buka **Administrasi → Import / Export**.
-2. Klik **Hubungkan & Sinkronkan Administrasi**.
-3. Klik **Hubungkan & Sinkronkan BT** untuk Bantuan Teknis.
-4. Berikan izin Google jika diminta.
-5. Refresh Dashboard Utama.
+2. Klik **Sinkronkan Rekomendasi** untuk mengambil baris `Rekomendasi Pemupukan` dari tab `Rekapitulasi`.
+3. Klik **Sinkronkan Administrasi** jika diperlukan.
+4. Klik **Sinkronkan BT** untuk Bantuan Teknis.
+5. Berikan izin Google jika diminta, lalu refresh Dashboard Utama.
 
 Sumber aktif:
 
+- Rekomendasi Pemupukan dan penagihan: `12gHG4c4t8_JeL_nW2YJ4bmgSCKE7krvSB4turxR6TTE`
 - Administrasi: `12gHG4c4t8_JeL_nW2YJ4bmgSCKE7krvSB4turxR6TTE`
 - Bantuan Teknis: `1P7_1s7YQYxj2Ee-IsZQoQjEd0lsJT7ANfD2iH2dOgB8`
 
@@ -45,4 +46,3 @@ Set-Location "D:\Dasboard monitoring kegiatan UPJKP-PPKS"
 git pull origin main
 git push origin main
 ```
-

@@ -5,10 +5,20 @@ const vm = require('vm');
 const root = path.resolve(__dirname, '..', 'google-apps-script');
 const files = [
   'Schema.gs', 'Config.gs', 'Repository.gs', 'DashboardService.gs',
-  'Automation.gs', 'DemoData.gs', 'Code.gs', 'SelfTest.gs', 'TemplateService.gs', 'SourceSync.gs', 'AdminSync.gs',
+  'Automation.gs', 'DemoData.gs', 'Code.gs', 'SelfTest.gs', 'TemplateService.gs', 'SourceSync.gs', 'AdminSync.gs', 'RecommendationSync.gs',
 ];
 const source = files.map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
 new vm.Script(source);
+const serverContext = vm.createContext({
+  Utilities: {
+    formatDate(date, timezone, format) {
+      if (format === 'yyyy') return String(date.getFullYear());
+      if (format === 'yyyy-MM-dd') return date.toISOString().slice(0, 10);
+      return date.toISOString();
+    },
+  },
+});
+new vm.Script(source).runInContext(serverContext);
 
 const clientFiles = ['Components.html', 'Dashboard.html', 'Modules.html', 'JavaScript.html'];
 for (const file of clientFiles) {
@@ -66,5 +76,64 @@ for (const code of ['RPJID', 'BT', 'PLT', 'ADM']) {
 }
 if (!templateService.includes('createInputTemplates')) throw new Error('Generator template tidak ditemukan');
 if (!templateService.includes('importInputTemplates')) throw new Error('Importer template tidak ditemukan');
+
+const recommendationSync = fs.readFileSync(path.join(root, 'RecommendationSync.gs'), 'utf8');
+for (const token of ['connectRekomendasiSource', 'getRekomendasiSyncStatus', "workflow: 'RP'", "SOURCE_SYNC=RP/LAPORAN", 'reportIndex[record.sourceKey]', 'teamIndex[record.sourceKey]']) {
+  if (!recommendationSync.includes(token)) throw new Error(`Sinkronisasi Rekomendasi tidak lengkap: ${token}`);
+}
+if (!modules.includes('data-action="sync-rp"')) throw new Error('Tombol sinkronisasi Rekomendasi tidak ditemukan');
+const code = fs.readFileSync(path.join(root, 'Code.gs'), 'utf8');
+if (!code.includes('ensureRekomendasiSourceInitialized_')) throw new Error('Inisialisasi satu kali sumber Rekomendasi tidak ditemukan');
+if (!code.includes("event.parameter.status === 'rp'")) throw new Error('Status sinkronisasi internal Rekomendasi tidak ditemukan');
+
+const activityFixture = Array(53).fill('');
+activityFixture[0] = 'RP';
+activityFixture[3] = 'RP-S-15';
+activityFixture[4] = 'Biaya';
+activityFixture[6] = 'PT Tasma Puja';
+activityFixture[8] = '05/01/2024';
+activityFixture[10] = 'Rekomendasi Pemupukan';
+activityFixture[25] = 'SPK-15';
+activityFixture[26] = '01/03/2024';
+activityFixture[30] = 50968841.25;
+serverContext.activityFixture = activityFixture;
+const mappedActivity = vm.runInContext('recommendationActivityRecord_(activityFixture, 2)', serverContext);
+if (mappedActivity.sourceKey !== 'RP-S-15' || mappedActivity.year !== 2024 || mappedActivity.value !== 50968841.25) {
+  throw new Error('Pemetaan kegiatan Rekomendasi tidak sesuai sumber');
+}
+const reportFixture = Array(32).fill('');
+reportFixture[0] = 'RP-S-15';
+reportFixture[6] = '02/04/2024';
+reportFixture[8] = 'Korektor Satu';
+reportFixture[9] = '03/04/2024';
+reportFixture[10] = '05/04/2024';
+reportFixture[28] = '20/04/2024';
+reportFixture[29] = '22/04/2024';
+serverContext.mappedActivity = mappedActivity;
+serverContext.reportFixture = reportFixture;
+const mappedReport = vm.runInContext('recommendationReportRecord_(mappedActivity, reportFixture)', serverContext);
+if (mappedReport.report.workflow !== 'RP' || mappedReport.report.checkpoint_terakhir !== 'CETAK FINAL' || mappedReport.report.tanggal_net !== '2024-04-22') {
+  throw new Error('Pemetaan workflow laporan Rekomendasi tidak sesuai');
+}
+const billingFixture = Array(36).fill('');
+billingFixture[3] = 'PTPN';
+billingFixture[4] = 'PT Perkebunan Nusantara IV Regional IV';
+billingFixture[5] = 'Rekomendasi Pemupukan';
+billingFixture[7] = 'Penagihan biaya rekomendasi pemupukan tahun 2025';
+billingFixture[8] = 'Pelunasan';
+billingFixture[9] = '100';
+billingFixture[14] = '052/01/2026/INV/RPN/01';
+billingFixture[15] = '09 Januari 2026';
+billingFixture[16] = 'Maret 2026';
+billingFixture[20] = '345,051,590.76';
+billingFixture[21] = '383,007,265.74';
+billingFixture[22] = '337,536,559.00';
+billingFixture[23] = '7,515,031.76';
+billingFixture[24] = '13 April 2026';
+serverContext.billingFixture = billingFixture;
+const mappedBilling = vm.runInContext("recommendationBillingRecord_(billingFixture, 8, 'Pencatatan penagihan admin 2026')", serverContext);
+if (mappedBilling.invoiceValue !== 345051590.76 || mappedBilling.contractValue !== 383007265.74 || mappedBilling.invoiceDate !== '2026-01-09' || mappedBilling.due !== '2026-03-31') {
+  throw new Error('Pemetaan Rekapitulasi penagihan Rekomendasi tidak sesuai');
+}
 
 console.log(`Valid: ${files.length} file server, ${clientFiles.length} modul client, light theme, 8 KPI, dan empat subbagian.`);
