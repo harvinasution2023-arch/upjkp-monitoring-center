@@ -5,7 +5,7 @@ const vm = require('vm');
 const root = path.resolve(__dirname, '..', 'google-apps-script');
 const files = [
   'Schema.gs', 'Config.gs', 'Repository.gs', 'DashboardService.gs',
-  'Automation.gs', 'DemoData.gs', 'Code.gs', 'SelfTest.gs', 'TemplateService.gs', 'SourceSync.gs', 'AdminSync.gs', 'RecommendationSync.gs',
+  'Automation.gs', 'DemoData.gs', 'Code.gs', 'SelfTest.gs', 'TemplateService.gs', 'SourceSync.gs', 'AdminSync.gs', 'RecommendationSync.gs', 'RecommendationMonitoringSync.gs', 'RecommendationWorkbook.gs',
 ];
 const source = files.map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
 new vm.Script(source);
@@ -134,6 +134,51 @@ serverContext.billingFixture = billingFixture;
 const mappedBilling = vm.runInContext("recommendationBillingRecord_(billingFixture, 8, 'Pencatatan penagihan admin 2026')", serverContext);
 if (mappedBilling.invoiceValue !== 345051590.76 || mappedBilling.contractValue !== 383007265.74 || mappedBilling.invoiceDate !== '2026-01-09' || mappedBilling.due !== '2026-03-31') {
   throw new Error('Pemetaan Rekapitulasi penagihan Rekomendasi tidak sesuai');
+}
+const monitoringFixture = Array(22).fill('');
+monitoringFixture[0] = 1;
+monitoringFixture[1] = 'Tanah Raja';
+monitoringFixture[2] = 'Erwin Nyak Akoeb, Erlianto, Syarifuddin';
+monitoringFixture[3] = '21-24 Jul 2025';
+monitoringFixture[6] = 'Edy Sigit Sutarta';
+monitoringFixture[7] = '2025-09-25';
+monitoringFixture[9] = 'Desra Sahputra';
+monitoringFixture[10] = '2025-10-08';
+monitoringFixture[12] = 'Iput Pradiko';
+monitoringFixture[13] = '2026-02-27';
+monitoringFixture[14] = '2026-03-04';
+serverContext.monitoringFixture = monitoringFixture;
+const mappedMonitoring = vm.runInContext("recommendationMonitoringRecord_(monitoringFixture, 'REG I P', 4)", serverContext);
+if (mappedMonitoring.company !== 'PT Perkebunan Nusantara IV Regional I' || mappedMonitoring.visitDate !== '2025-07-21' || mappedMonitoring.draft !== '2025-09-25' || mappedMonitoring.latest.code !== 'CETAK FINAL') {
+  throw new Error('Pemetaan monitoring regional Rekomendasi tidak sesuai');
+}
+serverContext.teamFixture = mappedMonitoring.teamText;
+if (vm.runInContext('recommendationMonitoringTeam_(teamFixture).length', serverContext) !== 3) throw new Error('Pemetaan tim monitoring Rekomendasi tidak sesuai');
+const privateFixture = Array(18).fill('');
+privateFixture[0] = 2;
+privateFixture[1] = 'PT Contoh Swasta';
+privateFixture[3] = 'Petugas Satu';
+serverContext.privateFixture = privateFixture;
+const mappedPrivate = vm.runInContext("recommendationMonitoringRecord_(privateFixture, 'Swasta', 5)", serverContext);
+if (!mappedPrivate || mappedPrivate.kebun !== 'Belum ditentukan' || !mappedPrivate.note.includes('LOKASI_BELUM_DIISI')) {
+  throw new Error('Baris Swasta tanpa nama kebun tidak dipertahankan');
+}
+serverContext.duplicateSeen = { 'R2KSO-10': true };
+serverContext.duplicateRecord = {
+  sourceKey: 'R2KSO-10', activityId: 'RP-MON-R2KSO-10', reportId: 'LAP-RP-MON-R2KSO-10', kebun: 'Kebun Contoh', note: 'SOURCE_SYNC=RP/MONITORING',
+};
+const mappedDuplicate = vm.runInContext('recommendationMonitoringUniqueRecord_(duplicateRecord, duplicateSeen, 14)', serverContext);
+if (mappedDuplicate.sourceKey === 'R2KSO-10' || !mappedDuplicate.note.includes('NOMOR_SUMBER_GANDA')) {
+  throw new Error('Nomor monitoring ganda masih dapat saling menimpa');
+}
+
+const monitoringSync = fs.readFileSync(path.join(root, 'RecommendationMonitoringSync.gs'), 'utf8');
+for (const token of ['REG I P', 'REG 1 KSO', 'REG 6 KSO', 'Reg VII', 'Swasta', 'financialActivitiesArchived']) {
+  if (!monitoringSync.includes(token)) throw new Error(`Konektor monitoring Rekomendasi tidak lengkap: ${token}`);
+}
+const recommendationWorkbook = fs.readFileSync(path.join(root, 'RecommendationWorkbook.gs'), 'utf8');
+for (const token of ['importRecommendationWorkbook', 'UPJKP_RP_MONITORING_SOURCE_ID', 'makeCopy', 'moveTo']) {
+  if (!recommendationWorkbook.includes(token)) throw new Error(`Importer workbook Rekomendasi tidak lengkap: ${token}`);
 }
 
 console.log(`Valid: ${files.length} file server, ${clientFiles.length} modul client, light theme, 8 KPI, dan empat subbagian.`);

@@ -1,5 +1,5 @@
 const RP_SOURCE_DEFAULT_ID = '12gHG4c4t8_JeL_nW2YJ4bmgSCKE7krvSB4turxR6TTE';
-const RP_SYNC_SCHEMA_VERSION = '1';
+const RP_SYNC_SCHEMA_VERSION = '2';
 
 function getRekomendasiSourceId_() {
   return getProperties_().getProperty('UPJKP_RP_SOURCE_ID') || RP_SOURCE_DEFAULT_ID;
@@ -396,6 +396,10 @@ function syncRekomendasiNow(options) {
     throw new Error('Google Sheet sumber Rekomendasi Pemupukan tidak dapat dibuka. Pastikan akun pemilik Apps Script memiliki akses. ' + error.message);
   }
   const activitySheet = source.getSheetByName('Bu Sri & Bu Desii');
+  const monitoringSheetCount = recommendationMonitoringSheetNames_().filter(function (sheetName) {
+    return Boolean(source.getSheetByName(sheetName));
+  }).length;
+  if (monitoringSheetCount >= 3) return syncRekomendasiMonitoringNow_(source, options);
   if (!activitySheet) {
     const billingSourceSheet = source.getSheetByName('Rekapitulasi');
     if (billingSourceSheet) return syncRekomendasiBillingSourceNow_(source, billingSourceSheet, options);
@@ -652,7 +656,7 @@ function getRekomendasiSyncStatus() {
     return activityIds[String(row.activity_id)];
   });
   const billings = getRows_('PENAGIHAN', false).filter(function (row) {
-    return activityIds[String(row.source_id)];
+    return activityIds[String(row.source_id)] || String(row.catatan || '').indexOf('SOURCE_SYNC=RP/') >= 0;
   });
   let summary = {};
   try { summary = JSON.parse(properties.getProperty('UPJKP_RP_LAST_SYNC_SUMMARY') || '{}'); }
@@ -672,18 +676,28 @@ function getRekomendasiSyncStatus() {
     }).length,
     errors: Number(summary.errors || 0),
     lastError: properties.getProperty('UPJKP_RP_LAST_ERROR') || '',
+    monitoringSourceSpreadsheetId: properties.getProperty('UPJKP_RP_MONITORING_SOURCE_ID') || '',
+    importProgress: properties.getProperty('UPJKP_RP_IMPORT_PROGRESS') || '',
+    importError: properties.getProperty('UPJKP_RP_IMPORT_LAST_ERROR') || '',
   });
 }
 
 function connectRekomendasiSource() {
   const properties = getProperties_();
-  properties.setProperty('UPJKP_RP_SOURCE_ID', RP_SOURCE_DEFAULT_ID);
-  const result = syncRekomendasiNow({ automatic: false, sourceSpreadsheetId: RP_SOURCE_DEFAULT_ID });
+  const sourceId = getRekomendasiSourceId_();
+  properties.setProperty('UPJKP_RP_SOURCE_ID', sourceId);
+  const result = syncRekomendasiNow({ automatic: false, sourceSpreadsheetId: sourceId });
   try {
-    const existing = ScriptApp.getProjectTriggers().some(function (trigger) {
-      return trigger.getHandlerFunction() === 'syncRekomendasiFromEdit';
+    let sourceTriggerExists = false;
+    ScriptApp.getProjectTriggers().forEach(function (trigger) {
+      if (trigger.getHandlerFunction() !== 'syncRekomendasiFromEdit') return;
+      let triggerSourceId = '';
+      try { triggerSourceId = trigger.getTriggerSourceId(); }
+      catch (error) { triggerSourceId = ''; }
+      if (triggerSourceId === sourceId) sourceTriggerExists = true;
+      else ScriptApp.deleteTrigger(trigger);
     });
-    if (!existing) ScriptApp.newTrigger('syncRekomendasiFromEdit').forSpreadsheet(RP_SOURCE_DEFAULT_ID).onEdit().create();
+    if (!sourceTriggerExists) ScriptApp.newTrigger('syncRekomendasiFromEdit').forSpreadsheet(sourceId).onEdit().create();
   } catch (error) {
     result.data.triggerWarning = 'Sinkronisasi selesai, tetapi trigger perubahan belum dibuat: ' + error.message;
   }
