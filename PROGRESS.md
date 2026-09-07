@@ -3,7 +3,7 @@
 ## Status terakhir
 
 - Status: **Berjalan**
-- Deployment aktif: **@34**
+- Deployment aktif: **@35**
 - URL aplikasi: `https://script.google.com/macros/s/AKfycbxT0gids44DaWESXxIDj6Mrjc146qhsqoq-4b-605j3bLrSfjyCNLELdbIm_FN0fJP-6A/exec`
 - Branch GitHub: `main`
 - Versi aplikasi: **v2.2.0**
@@ -18,6 +18,7 @@
 - Baris Swasta tanpa nama kebun tetap dimuat dengan lokasi `Belum ditentukan`.
 - Nomor ganda pada Reg II KSO dibuat unik agar tidak saling menimpa.
 - Trigger perubahan otomatis dipindahkan ke sumber monitoring Rekomendasi yang baru.
+- Menu Administrasi → Import / Export menjadi pusat kontrol dengan tombol **Sinkronkan Semua Sumber** untuk RP, Bantuan Teknis, dan Administrasi.
 - Sinkronisasi Bantuan Teknis dan Administrasi tetap aktif.
 - Backup, audit trail, filter per subbagian, dan static test tersedia.
 

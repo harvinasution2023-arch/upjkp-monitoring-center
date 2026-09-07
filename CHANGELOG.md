@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-07 — Centralisasi sumber melalui Administrasi
+
+- Menambahkan tombol **Sinkronkan Semua Sumber** pada area Administrasi → Import / Export.
+- Menjalankan sinkronisasi Rekomendasi Pemupukan, Bantuan Teknis, dan Administrasi secara berurutan dengan ringkasan hasil per sumber.
+
 ## 2026-09-07 — v2.2.0
 
 - Mengganti sumber produksi ke Google Sheet **Database Rekomendasi Pemupukan** baru yang seragam dengan format Bantuan Teknis (`Data R1`–`Data SW`).

@@ -237,6 +237,16 @@ window.addEventListener('hashchange',()=>{
 });
 
 document.addEventListener('click', async event=>{
+  const button=event.target.closest('[data-action="sync-all"]');
+  if (!button) return;
+  if (!confirm('Sinkronkan semua sumber utama melalui Administrasi sekarang?')) return;
+  button.disabled=true; const original=button.textContent; button.textContent='Sinkronisasi semua...';
+  try { const result=await callServer('syncAllOperationalSources'); const failed=(result.results||[]).filter(item=>!item.ok); toast(result.message,failed.length?'error':'success'); await refresh(); }
+  catch(error){ toast(error.message,'error'); }
+  finally { button.disabled=false; button.textContent=original; }
+});
+
+document.addEventListener('click', async event=>{
   const button=event.target.closest('[data-action="sync-rp"]');
   if (!button) return;
   if (!confirm('Hubungkan sumber Google Sheet Rekomendasi Pemupukan dan sinkronkan data sekarang?')) return;

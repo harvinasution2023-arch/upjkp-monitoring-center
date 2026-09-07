@@ -5,7 +5,7 @@ const vm = require('vm');
 const root = path.resolve(__dirname, '..', 'google-apps-script');
 const files = [
   'Schema.gs', 'Config.gs', 'Repository.gs', 'DashboardService.gs',
-  'Automation.gs', 'DemoData.gs', 'Code.gs', 'SelfTest.gs', 'TemplateService.gs', 'SourceSync.gs', 'AdminSync.gs', 'RecommendationSync.gs', 'RecommendationMonitoringSync.gs', 'RecommendationBTFormatSync.gs', 'RecommendationWorkbook.gs',
+  'Automation.gs', 'CentralSync.gs', 'DemoData.gs', 'Code.gs', 'SelfTest.gs', 'TemplateService.gs', 'SourceSync.gs', 'AdminSync.gs', 'RecommendationSync.gs', 'RecommendationMonitoringSync.gs', 'RecommendationBTFormatSync.gs', 'RecommendationWorkbook.gs',
 ];
 const source = files.map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
 new vm.Script(source);
@@ -179,6 +179,10 @@ for (const token of ['REG I P', 'REG 1 KSO', 'REG 6 KSO', 'Reg VII', 'Swasta', '
 const btRecommendationSync = fs.readFileSync(path.join(root, 'RecommendationBTFormatSync.gs'), 'utf8');
 for (const token of ['Data R1', 'BT_FORMAT_REGIONAL', 'SOURCE_SYNC=RP/BT_FORMAT']) {
   if (!btRecommendationSync.includes(token)) throw new Error(`Konektor format BT Rekomendasi tidak lengkap: ${token}`);
+}
+const centralSync = fs.readFileSync(path.join(root, 'CentralSync.gs'), 'utf8');
+for (const token of ['syncAllOperationalSources', 'Rekomendasi Pemupukan', 'Bantuan Teknis', 'Administrasi']) {
+  if (!centralSync.includes(token)) throw new Error(`Sinkronisasi terpusat Administrasi tidak lengkap: ${token}`);
 }
 const recommendationWorkbook = fs.readFileSync(path.join(root, 'RecommendationWorkbook.gs'), 'utf8');
 for (const token of ['importRecommendationWorkbook', 'UPJKP_RP_MONITORING_SOURCE_ID', 'makeCopy', 'moveTo']) {
