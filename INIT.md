@@ -28,7 +28,7 @@ https://script.google.com/macros/s/AKfycbxT0gids44DaWESXxIDj6Mrjc146qhsqoq-4b-60
 
 Sumber aktif:
 
-- Rekomendasi Pemupukan: `1lOn9KmGBMgWiroBHzIZ-JGPR0AZ-8LnEkwNxbyJXsGg`
+- Rekomendasi Pemupukan: `1FDJQIZnrPDgAtTOoyLryTqlnRL69xGgBBzmNPmwzctc`
 - Penagihan/Administrasi: `12gHG4c4t8_JeL_nW2YJ4bmgSCKE7krvSB4turxR6TTE`
 - Administrasi: `12gHG4c4t8_JeL_nW2YJ4bmgSCKE7krvSB4turxR6TTE`
 - Bantuan Teknis: `1P7_1s7YQYxj2Ee-IsZQoQjEd0lsJT7ANfD2iH2dOgB8`

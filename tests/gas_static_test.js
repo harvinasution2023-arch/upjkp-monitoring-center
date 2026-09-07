@@ -5,7 +5,7 @@ const vm = require('vm');
 const root = path.resolve(__dirname, '..', 'google-apps-script');
 const files = [
   'Schema.gs', 'Config.gs', 'Repository.gs', 'DashboardService.gs',
-  'Automation.gs', 'DemoData.gs', 'Code.gs', 'SelfTest.gs', 'TemplateService.gs', 'SourceSync.gs', 'AdminSync.gs', 'RecommendationSync.gs', 'RecommendationMonitoringSync.gs', 'RecommendationWorkbook.gs',
+  'Automation.gs', 'DemoData.gs', 'Code.gs', 'SelfTest.gs', 'TemplateService.gs', 'SourceSync.gs', 'AdminSync.gs', 'RecommendationSync.gs', 'RecommendationMonitoringSync.gs', 'RecommendationBTFormatSync.gs', 'RecommendationWorkbook.gs',
 ];
 const source = files.map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
 new vm.Script(source);
@@ -175,6 +175,10 @@ if (mappedDuplicate.sourceKey === 'R2KSO-10' || !mappedDuplicate.note.includes('
 const monitoringSync = fs.readFileSync(path.join(root, 'RecommendationMonitoringSync.gs'), 'utf8');
 for (const token of ['REG I P', 'REG 1 KSO', 'REG 6 KSO', 'Reg VII', 'Swasta', 'financialActivitiesArchived']) {
   if (!monitoringSync.includes(token)) throw new Error(`Konektor monitoring Rekomendasi tidak lengkap: ${token}`);
+}
+const btRecommendationSync = fs.readFileSync(path.join(root, 'RecommendationBTFormatSync.gs'), 'utf8');
+for (const token of ['Data R1', 'BT_FORMAT_REGIONAL', 'SOURCE_SYNC=RP/BT_FORMAT']) {
+  if (!btRecommendationSync.includes(token)) throw new Error(`Konektor format BT Rekomendasi tidak lengkap: ${token}`);
 }
 const recommendationWorkbook = fs.readFileSync(path.join(root, 'RecommendationWorkbook.gs'), 'utf8');
 for (const token of ['importRecommendationWorkbook', 'UPJKP_RP_MONITORING_SOURCE_ID', 'makeCopy', 'moveTo']) {

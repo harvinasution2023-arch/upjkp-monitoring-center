@@ -2,12 +2,12 @@
 
 ## 2026-09-07 — v2.2.0
 
-- Membuat Google Sheet khusus **Monitoring Rekomendasi Pemupukan** dari workbook terbaru dengan sepuluh tab regional/swasta.
+- Mengganti sumber produksi ke Google Sheet **Database Rekomendasi Pemupukan** baru yang seragam dengan format Bantuan Teknis (`Data R1`–`Data SW`).
 - Menyinkronkan 170 kegiatan dan 170 laporan Rekomendasi Pemupukan, termasuk 587 baris tim, tanpa error.
 - Mempertahankan 19 baris Swasta yang belum memiliki nama kebun dengan penanda `Belum ditentukan`.
 - Mencegah nomor sumber ganda pada Reg II KSO saling menimpa.
 - Memisahkan sumber monitoring rekomendasi dari sumber Administrasi/penagihan serta mempertahankan 26 data penagihan lama.
-- Memindahkan trigger perubahan otomatis ke Google Sheet monitoring yang baru.
+- Memindahkan trigger perubahan otomatis ke Google Sheet rekomendasi yang baru.
 
 ## 2026-09-07 — v2.1.0
 

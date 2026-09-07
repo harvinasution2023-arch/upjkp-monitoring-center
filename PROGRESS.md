@@ -3,7 +3,7 @@
 ## Status terakhir
 
 - Status: **Berjalan**
-- Deployment aktif: **@30**
+- Deployment aktif: **@32**
 - URL aplikasi: `https://script.google.com/macros/s/AKfycbxT0gids44DaWESXxIDj6Mrjc146qhsqoq-4b-605j3bLrSfjyCNLELdbIm_FN0fJP-6A/exec`
 - Branch GitHub: `main`
 - Versi aplikasi: **v2.2.0**
@@ -25,14 +25,14 @@
 
 | Subbagian | Spreadsheet ID | Status |
 |---|---|---|
-| Rekomendasi Pemupukan | `1lOn9KmGBMgWiroBHzIZ-JGPR0AZ-8LnEkwNxbyJXsGg` | Terhubung — 170 kegiatan, 170 laporan, 587 tim |
+| Rekomendasi Pemupukan | `1FDJQIZnrPDgAtTOoyLryTqlnRL69xGgBBzmNPmwzctc` | Terhubung — 170 kegiatan, 170 laporan |
 | Administrasi/penagihan | `12gHG4c4t8_JeL_nW2YJ4bmgSCKE7krvSB4turxR6TTE` | Terhubung — 26 penagihan RP dipertahankan |
 | Bantuan Teknis | `1P7_1s7YQYxj2Ee-IsZQoQJEd0lsJT7ANfD2iH2dOgB8` | Terhubung |
 
 ## Verifikasi terakhir
 
 - Waktu sinkronisasi: **7 September 2026 pukul 11:01 WIB**.
-- Status internal: `connected=true`, `sourceLayout=MONITORING_REKOMENDASI_REGIONAL`, `errors=0`.
+- Status internal: `connected=true`, `sourceLayout=BT_FORMAT_REGIONAL`, `errors=0`.
 - Sumber terdiri dari `REG I P`, `REG 1 KSO`, `Reg II P`, `Reg II KSO`, `Reg III P`, `Reg IV P`, `Reg V P`, `REG 6 KSO`, `Reg VII`, dan `Swasta`.
 - Pemeriksaan `node .\tests\gas_static_test.js` lulus.
 - Pemeriksaan `python -m unittest discover -s .\tests -p "test_*.py"` lulus: **5 dari 5 test**.

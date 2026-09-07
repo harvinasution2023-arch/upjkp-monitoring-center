@@ -400,6 +400,10 @@ function syncRekomendasiNow(options) {
     return Boolean(source.getSheetByName(sheetName));
   }).length;
   if (monitoringSheetCount >= 3) return syncRekomendasiMonitoringNow_(source, options);
+  const btFormatSheetCount = BT_SOURCE_SHEETS.filter(function (sheetName) {
+    return Boolean(source.getSheetByName(sheetName));
+  }).length;
+  if (btFormatSheetCount >= 3) return syncRekomendasiBTFormatNow_(source, options);
   if (!activitySheet) {
     const billingSourceSheet = source.getSheetByName('Rekapitulasi');
     if (billingSourceSheet) return syncRekomendasiBillingSourceNow_(source, billingSourceSheet, options);
@@ -676,7 +680,7 @@ function getRekomendasiSyncStatus() {
     }).length,
     errors: Number(summary.errors || 0),
     lastError: properties.getProperty('UPJKP_RP_LAST_ERROR') || '',
-    monitoringSourceSpreadsheetId: properties.getProperty('UPJKP_RP_MONITORING_SOURCE_ID') || '',
+    monitoringSourceSpreadsheetId: summary.sourceLayout === 'MONITORING_REKOMENDASI_REGIONAL' ? (properties.getProperty('UPJKP_RP_MONITORING_SOURCE_ID') || '') : '',
     importProgress: properties.getProperty('UPJKP_RP_IMPORT_PROGRESS') || '',
     importError: properties.getProperty('UPJKP_RP_IMPORT_LAST_ERROR') || '',
   });
