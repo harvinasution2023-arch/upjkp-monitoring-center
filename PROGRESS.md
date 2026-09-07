@@ -21,6 +21,7 @@
 - Menu Administrasi → Import / Export menjadi pusat kontrol dengan tombol **Sinkronkan Semua Sumber** untuk RP, Bantuan Teknis, dan Administrasi.
 - Sinkronisasi Bantuan Teknis dan Administrasi tetap aktif.
 - Backup, audit trail, filter per subbagian, dan static test tersedia.
+- Diagram alur integrasi tersimpan di `docs/alur-integrasi-dashboard.png` (sumber editable: `docs/alur-integrasi-dashboard.html`).
 
 ## Sumber data aktif
 
@@ -38,6 +39,13 @@
 - Pemeriksaan `node .\tests\gas_static_test.js` lulus.
 - Pemeriksaan `python -m unittest discover -s .\tests -p "test_*.py"` lulus: **5 dari 5 test**.
 - Branch lokal `main` lebih maju dari `origin/main`; push GitHub memerlukan kredensial sesi terminal.
+
+## Checkpoint untuk dilanjutkan
+
+- Kondisi kerja terakhir: dashboard produksi aktif dan sudah memakai spreadsheet Rekomendasi Pemupukan `1FDJQIZ...`.
+- Pusat input/sinkronisasi berada di **Administrasi → Import / Export → Sinkronkan Semua Sumber**.
+- Jangan mengaktifkan kembali sumber lama `1tNZmCWPzHOB69yEwNOJTijwQxCyJkzMnilh79T4FFtc`.
+- Saat melanjutkan, mulai dengan `git status --short --branch`, buka `PROGRESS.md`, lalu verifikasi status `?status=rp` sebelum perubahan baru.
 
 ## Tindak lanjut
 
