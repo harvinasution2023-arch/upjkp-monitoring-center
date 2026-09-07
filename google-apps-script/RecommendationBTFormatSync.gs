@@ -33,13 +33,14 @@ function syncRekomendasiBTFormatNow_(source, options) {
     });
   });
   if (!records.length) throw new Error('Tidak ada baris format Data R1–Data SW yang dapat dipetakan.');
-  let insertedActivities = 0, updatedActivities = 0, insertedReports = 0, updatedReports = 0, companiesCreated = 0, obsoleteActivitiesArchived = 0;
+  let insertedActivities = 0, updatedActivities = 0, insertedReports = 0, updatedReports = 0, companiesCreated = 0, obsoleteActivitiesArchived = 0, teamRows = 0;
   const errors = [], liveActivities = {};
   records.forEach(function (record) { liveActivities[record.activityId] = true; });
   const transaction = withWriteTransaction_({ actor: currentUser_(), action: 'sync_rp_bt_format_source', tableName: 'MULTI', recordId: source.getId(), reason: 'Sinkronisasi format Data regional Rekomendasi Pemupukan' }, function (master) {
     const companiesTable = recommendationMemoryTable_(master.getSheetByName('MASTER_PERUSAHAAN'), 'company_id');
     const activitiesTable = recommendationMemoryTable_(master.getSheetByName('KEGIATAN'), 'activity_id');
     const reportsTable = recommendationMemoryTable_(master.getSheetByName('MONITORING_LAPORAN'), 'report_id');
+    const teamTable = recommendationMemoryTable_(master.getSheetByName('TIM_SPJ'), 'team_id');
     const companies = {};
     let nextCompanyNumber = 1;
     companiesTable.rows.forEach(function (values) {
@@ -75,6 +76,10 @@ function syncRekomendasiBTFormatNow_(source, options) {
         if (activityResult === 'inserted') insertedActivities += 1; else updatedActivities += 1;
         const reportResult = reportsTable.upsert(record.reportId, { report_id: record.reportId, activity_id: record.activityId, company_id: companyId, perusahaan: companyName, regional: record.region, kebun: record.kebun, nama_kegiatan: record.activity || 'Rekomendasi Pemupukan', tahun: record.year, workflow: 'RP', tanggal_draft_masuk: record.draft, checkpoint_terakhir: record.checkpoint, tanggal_checkpoint: record.checkpointDate, tanggal_revisi: record.revised, tanggal_cetak: record.printed, tanggal_kirim: record.sent, status: record.statusSource || (record.checkpoint ? 'PROSES' : 'DRAFT'), pic: record.pic, catatan: record.note, created_at: nowIso_(), updated_at: nowIso_(), archived_at: '' });
         if (reportResult === 'inserted') insertedReports += 1; else updatedReports += 1;
+        recommendationMonitoringTeam_(record.pic).forEach(function (name, index) {
+          teamTable.upsert('TEAM-' + record.activityId + '-' + (index + 1), { team_id: 'TEAM-' + record.activityId + '-' + (index + 1), activity_id: record.activityId, nama: name, peran: index === 0 ? 'Leader' : 'Anggota', hk: 0, nominal_hk: 0, total_spj: 0, panjar: 0, realisasi_panjar: 0, catatan: 'SOURCE_SYNC=RP/BT_FORMAT', created_at: nowIso_(), updated_at: nowIso_() });
+          teamRows += 1;
+        });
       } catch (error) { errors.push(record.sourceKey + ': ' + error.message); }
     });
     reportsTable.rows.forEach(function (values) {
@@ -82,7 +87,7 @@ function syncRekomendasiBTFormatNow_(source, options) {
       reportsTable.headers.forEach(function (header, index) { row[header] = values[index]; });
       if (!row.archived_at && String(row.catatan || '').indexOf('SOURCE_SYNC=RP/') >= 0 && !liveActivities[String(row.activity_id)]) reportsTable.upsert(row.report_id, { archived_at: nowIso_(), updated_at: nowIso_() });
     });
-    companiesTable.flush(); activitiesTable.flush(); reportsTable.flush();
+    companiesTable.flush(); activitiesTable.flush(); reportsTable.flush(); teamTable.flush();
   }, { skipBackup: Boolean(options.automatic) });
-  return success_({ sourceSpreadsheetId: source.getId(), sourceUrl: source.getUrl(), sourceLayout: 'BT_FORMAT_REGIONAL', sourceSheets: availableSheets, rowsRead: records.length, insertedActivities: insertedActivities, updatedActivities: updatedActivities, insertedReports: insertedReports, updatedReports: updatedReports, insertedBilling: 0, updatedBilling: 0, historyRows: 0, teamRows: 0, companiesCreated: companiesCreated, obsoleteActivitiesArchived: obsoleteActivitiesArchived, legacyReportsArchived: 0, errors: errors.slice(0, 20), backupId: transaction.backupId, message: records.length + ' kegiatan format Data regional disinkronkan sebagai Rekomendasi Pemupukan.' });
+  return success_({ sourceSpreadsheetId: source.getId(), sourceUrl: source.getUrl(), sourceLayout: 'BT_FORMAT_REGIONAL', sourceSheets: availableSheets, rowsRead: records.length, insertedActivities: insertedActivities, updatedActivities: updatedActivities, insertedReports: insertedReports, updatedReports: updatedReports, insertedBilling: 0, updatedBilling: 0, historyRows: 0, teamRows: teamRows, companiesCreated: companiesCreated, obsoleteActivitiesArchived: obsoleteActivitiesArchived, legacyReportsArchived: 0, errors: errors.slice(0, 20), backupId: transaction.backupId, message: records.length + ' kegiatan format Data regional disinkronkan sebagai Rekomendasi Pemupukan.' });
 }

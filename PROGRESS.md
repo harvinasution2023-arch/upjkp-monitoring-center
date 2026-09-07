@@ -3,7 +3,7 @@
 ## Status terakhir
 
 - Status: **Berjalan**
-- Deployment aktif: **@32**
+- Deployment aktif: **@34**
 - URL aplikasi: `https://script.google.com/macros/s/AKfycbxT0gids44DaWESXxIDj6Mrjc146qhsqoq-4b-605j3bLrSfjyCNLELdbIm_FN0fJP-6A/exec`
 - Branch GitHub: `main`
 - Versi aplikasi: **v2.2.0**
@@ -13,7 +13,7 @@
 - Dashboard Utama dan dashboard khusus empat subbagian.
 - Google Sheet khusus **Monitoring Rekomendasi Pemupukan** dengan sepuluh tab regional/swasta.
 - Sinkronisasi Rekomendasi Pemupukan ke kegiatan, laporan, histori checkpoint, perusahaan, dan tim.
-- Sebanyak **170 kegiatan**, **170 laporan**, dan **587 baris tim** terverifikasi tanpa error.
+- Sebanyak **170 kegiatan**, **170 laporan**, dan **586 baris tim** terverifikasi tanpa error.
 - Sebanyak **26 data penagihan** dari sumber lama tetap dipertahankan.
 - Baris Swasta tanpa nama kebun tetap dimuat dengan lokasi `Belum ditentukan`.
 - Nomor ganda pada Reg II KSO dibuat unik agar tidak saling menimpa.
@@ -25,13 +25,13 @@
 
 | Subbagian | Spreadsheet ID | Status |
 |---|---|---|
-| Rekomendasi Pemupukan | `1FDJQIZnrPDgAtTOoyLryTqlnRL69xGgBBzmNPmwzctc` | Terhubung — 170 kegiatan, 170 laporan |
+| Rekomendasi Pemupukan | `1FDJQIZnrPDgAtTOoyLryTqlnRL69xGgBBzmNPmwzctc` | Terhubung — 170 kegiatan, 170 laporan, 586 tim |
 | Administrasi/penagihan | `12gHG4c4t8_JeL_nW2YJ4bmgSCKE7krvSB4turxR6TTE` | Terhubung — 26 penagihan RP dipertahankan |
 | Bantuan Teknis | `1P7_1s7YQYxj2Ee-IsZQoQJEd0lsJT7ANfD2iH2dOgB8` | Terhubung |
 
 ## Verifikasi terakhir
 
-- Waktu sinkronisasi: **7 September 2026 pukul 11:01 WIB**.
+- Waktu sinkronisasi: **7 September 2026 pukul 12:17 WIB**.
 - Status internal: `connected=true`, `sourceLayout=BT_FORMAT_REGIONAL`, `errors=0`.
 - Sumber terdiri dari `REG I P`, `REG 1 KSO`, `Reg II P`, `Reg II KSO`, `Reg III P`, `Reg IV P`, `Reg V P`, `REG 6 KSO`, `Reg VII`, dan `Swasta`.
 - Pemeriksaan `node .\tests\gas_static_test.js` lulus.
