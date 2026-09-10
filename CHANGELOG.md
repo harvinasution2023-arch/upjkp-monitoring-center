@@ -1,5 +1,76 @@
 # Changelog
 
+## 2026-09-10 — v2.6.6
+
+- Menyimpan laporan Bantuan Teknis baru dengan `workflow=BT` agar detail laporan memakai timeline enam checkpoint BT.
+- Filter Monitoring Laporan BT tetap menerima data historis `workflow=UMUM` selama subbagian kegiatannya `BT`.
+- Dropdown template monitoring laporan menambahkan opsi workflow `BT`.
+- Deployment produksi diperbarui ke **@68**.
+
+## 2026-09-09 — v2.6.5
+
+- Menyeragamkan ID aktif berdasarkan kategori: `RP-*` untuk Rekomendasi Pemupukan, `BT-*` untuk Bantuan Teknis, dan `TR-*` untuk Pelatihan.
+- Input manual dari dashboard sekarang membuat ID `RP-YYYY-####`, `BT-YYYY-####`, atau `TR-YYYY-####`, bukan `ACT-YYYY-####`.
+- Sinkronisasi Administrasi memigrasikan `ADM-SRC-RP-*`, `ADM-SRC-BT-*`, dan `ADM-SRC-TR-*` ke ID kategori aktif serta mengarsipkan report/billing lama agar KPI tidak dobel.
+- Prefix lama `RP-BT`, `RP-FMT`, `RP-MON`, dan `ADM-SRC-RP/BT/TR` hanya dipakai sebagai legacy key untuk arsip/migrasi, bukan ID aktif baru.
+- Data demo ikut memakai prefix kategori.
+- Deployment produksi diperbarui ke **@66**; sinkronisasi RP dan Administrasi dijalankan ulang melalui akun pemilik, lalu endpoint maintenance sementara dihapus.
+
+## 2026-09-09 — v2.6.4
+
+- Mengganti prefix ID aktif RP dari sumber Format Seragam menjadi `RP-FMT` / `LAP-RP-FMT` agar tidak lagi muncul kode `BT` pada kegiatan atau detail laporan RP.
+- Sinkronisasi RP tetap mengenali prefix/tag lama `RP-BT` hanya untuk mengarsipkan data aktif yang sudah terlanjur dibuat.
+- Deployment produksi diperbarui ke **@63** dan sinkronisasi RP dijalankan ulang melalui akun pemilik.
+
+## 2026-09-09 — v2.6.3
+
+- Data lama pada tahap `KOREKTOR FINAL` atau `PENGIRIMAN` dianggap **SELESAI** walaupun tanggal NET kosong.
+- Form **Catat kegiatan** menambahkan input `Tanggal NET (opsional)` dan membuat record monitoring baru dengan checkpoint NET jika diisi.
+
+## 2026-09-09 — v2.6.2
+
+- Menetapkan tahap koreksi setelah `CETAK 1` sebagai **KOREKTOR FINAL** untuk RP.
+- Menyamakan pemetaan BT: korektor terakhir setelah Korektor 1/2 ditampilkan sebagai **KOREKTOR FINAL** pada histori dan detail dashboard.
+- Memperbarui timeline, status checkpoint, histori, dan `korektor_terakhir` agar nama korektor final tampil konsisten.
+- Deployment produksi diperbarui ke versi v2.6.2 untuk RP dan BT.
+- Alur monitoring diringkas menjadi enam checkpoint: DRAFT, Korektor 1, Korektor 2, Cetak 1, Korektor Final, dan NET.
+- Semua monitoring laporan menetapkan status **SELESAI** ketika checkpoint atau tanggal NET tercatat; laporan NET tidak lagi dianggap menunggu atau terlambat.
+- Memigrasikan 170 laporan sumber RP ke label baru dengan backup Google Sheet otomatis.
+
+## 2026-09-09 — v2.6.0
+
+- Membaca nama korektor/verifikator pada 170 laporan Rekomendasi Pemupukan secara terpisah dari checkpoint terakhir sehingga tahap cetak/kirim tidak lagi mengosongkan `korektor_terakhir`.
+- Memetakan 461 penugasan korektor/verifikator RP ke `HISTORI_LAPORAN`, termasuk nama yang sudah ditugaskan walaupun tanggal proses belum diisi.
+- Memperbaiki pergeseran kolom korektor khusus sheet `Reg V P` (nama kedua di kolom I dan tanggalnya di kolom J).
+- Menambahkan indikator **Korektor terpantau** pada Dashboard Rekomendasi dan mempertahankan kolom serta detail riwayat korektor pada Monitoring Laporan.
+- Mengisi workbook **Monitoring Rekomendasi Pemupukan - Format Seragam.xlsx** dengan nama korektor dan pasangan tanggal seperti format Bantuan Teknis; backup sebelum perubahan turut disimpan.
+- Memperluas konektor format seragam agar membaca header nama korektor, mengisi `korektor_terakhir`, dan menyimpan riwayat korektor.
+
+## 2026-09-09 — v2.5.0
+
+- Membaca nama korektor Bantuan Teknis secara dinamis dari baris 2 setiap sheet regional dan memasangkannya dengan tanggal masuk/keluar pada kolom J–Y.
+- Menyimpan setiap tahap korektor BT ke `HISTORI_LAPORAN` serta mengisi `korektor_terakhir` pada `MONITORING_LAPORAN`.
+- Menambahkan kolom **Korektor Terakhir**, pencarian korektor, indikator jumlah korektor, dan tabel **Riwayat Korektor** pada Dashboard BT.
+- Memperbaiki tanggal checkpoint agar mengikuti tanggal cetak/pengiriman ketika laporan sudah melewati tahap koreksi.
+
+## 2026-09-09 — v2.4.0
+
+- Membuka 46 record Administrasi berkode `TR` yang sebelumnya sudah tersinkron ke master tetapi belum diloloskan oleh API monitoring Administrasi.
+- Menambahkan submenu **Administrasi Pelatihan** pada subbagian Pelatihan dengan data perusahaan, lokasi, perihal, kegiatan, leader, petugas, Surat Masuk/Keluar, dan status laporan.
+- Menambahkan halaman **Monitoring Laporan Pelatihan** serta pintasan dari Dashboard Pelatihan.
+- Memperluas Dashboard Administrasi dari RP/BT menjadi RP/BT/TR beserta indikator jumlah data Pelatihan.
+
+## 2026-09-08 — v2.3.0
+
+- Menghubungkan spreadsheet **Data base Admin** `1k587rOiqhWk2uIWrSlhxxjRmD_LW1biy1SR76KsTk0o` sebagai sumber Administrasi aktif.
+- Memetakan seluruh sheet sumber Administrasi: `Bu Sri & Bu Desii`, `Laporan`, `Tim`, dan `Menu Drop down`.
+- Menggabungkan field perusahaan, kebun/lokasi, perihal, kegiatan, leader, dan petugas ke kegiatan RP/BT yang cocok tanpa menggandakan record master.
+- Menambahkan relasi nomor/tanggal Surat Masuk serta Surat Balasan/Keluar melalui tabel korespondensi.
+- Menghubungkan data Administrasi ke monitoring laporan RP dan BT serta menyediakan submenu **Administrasi RP** dan **Administrasi BT**.
+- Mempertahankan data sumber yang tidak dapat dicocokkan secara pasti sebagai record historis Administrasi tersendiri agar tidak salah menimpa kegiatan RP/BT.
+- Menormalkan campuran tanggal `DD/MM/YYYY`, `MM/DD/YYYY`, dan `YYYY/DD/MM`, serta menolak tanggal yang tidak valid.
+- Menyinkronkan 821 record Administrasi, 1.403 korespondensi, 852 baris petugas, 403 penagihan, dan 240 nilai dropdown ke database master.
+
 ## 2026-09-07 — Centralisasi sumber melalui Administrasi
 
 - Menambahkan tombol **Sinkronkan Semua Sumber** pada area Administrasi → Import / Export.

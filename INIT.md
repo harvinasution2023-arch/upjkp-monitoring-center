@@ -22,15 +22,14 @@ https://script.google.com/macros/s/AKfycbxT0gids44DaWESXxIDj6Mrjc146qhsqoq-4b-60
 
 1. Buka **Administrasi → Import / Export**.
 2. Klik **Sinkronkan Rekomendasi** untuk membaca sepuluh tab monitoring regional dan swasta.
-3. Klik **Sinkronkan Administrasi** jika diperlukan.
+3. Klik **Sinkronkan Administrasi** untuk memperbarui data RP, BT, dan Pelatihan (TR) dari database Administrasi.
 4. Klik **Sinkronkan BT** untuk Bantuan Teknis.
 5. Berikan izin Google jika diminta, lalu refresh Dashboard Utama.
 
 Sumber aktif:
 
 - Rekomendasi Pemupukan: `1FDJQIZnrPDgAtTOoyLryTqlnRL69xGgBBzmNPmwzctc`
-- Penagihan/Administrasi: `12gHG4c4t8_JeL_nW2YJ4bmgSCKE7krvSB4turxR6TTE`
-- Administrasi: `12gHG4c4t8_JeL_nW2YJ4bmgSCKE7krvSB4turxR6TTE`
+- Administrasi/penagihan: `1k587rOiqhWk2uIWrSlhxxjRmD_LW1biy1SR76KsTk0o`
 - Bantuan Teknis: `1P7_1s7YQYxj2Ee-IsZQoQjEd0lsJT7ANfD2iH2dOgB8`
 
 ## Pengujian lokal

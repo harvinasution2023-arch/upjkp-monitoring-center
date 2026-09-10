@@ -60,7 +60,7 @@ class RepositoryTests(unittest.TestCase):
             },
             actor="test",
         )
-        self.assertTrue(created["activity_id"].startswith(f"ACT-{date.today().year}-"))
+        self.assertTrue(created["activity_id"].startswith(f"BT-{date.today().year}-"))
         self.assertEqual(len(self.repository.rows("MASTER_PERUSAHAAN")), 1)
         self.assertTrue(any(self.settings.backup_root.rglob("UPJKP_DB_*.xlsx")))
 

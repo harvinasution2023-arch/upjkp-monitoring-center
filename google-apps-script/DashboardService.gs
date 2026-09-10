@@ -24,9 +24,13 @@ function reportProgress_(row) {
   const printed = parseDate_(row.tanggal_cetak);
   const revised = parseDate_(row.tanggal_revisi);
   const checkpoint = String(row.checkpoint_terakhir || '').toUpperCase();
+  // Data lama sering tidak memiliki tanggal NET. Jika sudah mencapai
+  // Korektor Final/Pengiriman, perlakukan sebagai selesai; input baru dapat
+  // mengisi tanggal NET secara eksplisit melalui formulir kegiatan.
+  const legacyCompleted = checkpoint === 'KOREKTOR FINAL' || checkpoint === 'PENGIRIMAN';
+  const completed = Boolean(net || sent || checkpoint === 'NET' || checkpoint === 'NET / RP27' || legacyCompleted);
   let status = 'BELUM DIMULAI';
-  if (net) status = 'NET / RP27';
-  else if (sent) status = 'SELESAI';
+  if (completed) status = 'SELESAI';
   else if (checkpoint) status = checkpoint;
   else if (printed) status = 'DICETAK';
   else if (revised) status = 'DIREVISI';
@@ -35,9 +39,9 @@ function reportProgress_(row) {
   const deadline = draft ? new Date(draft.getTime() + 30 * 86400000) : null;
   const stopDate = net || sent || today;
   const elapsed = draft ? Math.max(0, daysBetween_(draft, stopDate)) : 0;
-  const remaining = deadline && !net && !sent ? daysBetween_(today, deadline) : null;
+  const remaining = deadline && !completed ? daysBetween_(today, deadline) : null;
   let deadlineStatus = 'BELUM DIMULAI';
-  if (net || sent) deadlineStatus = 'SELESAI';
+  if (completed) deadlineStatus = 'SELESAI';
   else if (draft && elapsed <= 20) deadlineStatus = 'AMAN';
   else if (draft && elapsed <= 25) deadlineStatus = 'PERHATIAN';
   else if (draft && elapsed <= 29) deadlineStatus = 'SEGERA SELESAIKAN';
@@ -118,7 +122,7 @@ function buildDashboard_(selectedYear) {
   const hpp = activities.reduce(function (sum, row) { return sum + number_(row.hpp); }, 0);
   const grossProfit = totalRevenue - hpp;
   const totalRkap = rkap.reduce(function (sum, row) { return sum + number_(row.nilai); }, 0);
-  const netReportIds = reports.filter(function (row) { return row.status_hitung === 'NET / RP27'; }).map(function (row) { return String(row.report_id); });
+  const netReportIds = reports.filter(function (row) { return Boolean(row.tanggal_net) || String(row.checkpoint_terakhir || '').toUpperCase() === 'NET' || row.status_hitung === 'NET / RP27'; }).map(function (row) { return String(row.report_id); });
   const billedSources = billings.map(function (row) { return String(row.source_id); });
   const netReady = netReportIds.filter(function (id) { return billedSources.indexOf(id) < 0; }).length;
 
@@ -245,6 +249,18 @@ function buildDashboard_(selectedYear) {
   };
 }
 
+function moduleFilterMatches_(row, filters, moduleName) {
+  return Object.keys(filters).every(function (key) {
+    const expected = String(filters[key] || '').toLowerCase();
+    if (!expected) return true;
+    if (moduleName === 'reports' && key === 'workflow' && String(row.subbagian || '').toUpperCase() === 'BT') {
+      const workflow = String(row.workflow || '').toUpperCase();
+      return ['BT', 'UMUM', ''].indexOf(workflow) >= 0 && ['bt', 'umum'].indexOf(expected) >= 0;
+    }
+    return String(row[key] || '').toLowerCase() === expected;
+  });
+}
+
 function getModuleData(moduleName, options) {
   assertConfigured_();
   options = options || {};
@@ -280,14 +296,124 @@ function getModuleData(moduleName, options) {
       const text = Object.keys(row).map(function (key) { return String(row[key]); }).join(' ').toLowerCase();
       if (text.indexOf(query) < 0) return false;
     }
-    return Object.keys(filters).every(function (key) {
-      return !filters[key] || String(row[key] || '').toLowerCase() === String(filters[key]).toLowerCase();
-    });
+    return moduleFilterMatches_(row, filters, moduleName);
   });
   const pageSize = Math.min(200, Math.max(1, Number(options.pageSize || 100)));
   const page = Math.max(1, Number(options.page || 1));
   const start = (page - 1) * pageSize;
   return success_({ items: rows.slice(start, start + pageSize), total: rows.length, page: page, pages: Math.max(1, Math.ceil(rows.length / pageSize)) });
+}
+
+function isAdministrativeOperationalActivity_(activity) {
+  const subsection = String(activity.subbagian || CATEGORY_TO_SUBBAGIAN[activity.kategori] || '').toUpperCase();
+  const category = String(activity.kategori || '').toUpperCase();
+  return (subsection === 'RPJID' && category === 'RP') || subsection === 'BT' || (subsection === 'PLT' && category === 'TR');
+}
+
+function getAdministrativeMonitoring(options) {
+  assertConfigured_();
+  options = options || {};
+  const selectedSubsection = String(options.subbagian || '').toUpperCase();
+  const selectedCategory = String(options.kategori || '').toUpperCase();
+  const selectedYear = Number(options.tahun || 0);
+  const query = String(options.query || '').trim().toLowerCase();
+  const activities = getRows_('KEGIATAN', false).filter(function (activity) {
+    const subsection = String(activity.subbagian || CATEGORY_TO_SUBBAGIAN[activity.kategori] || '').toUpperCase();
+    const category = String(activity.kategori || '').toUpperCase();
+    if (!isAdministrativeOperationalActivity_(activity)) return false;
+    if (selectedSubsection && subsection !== selectedSubsection) return false;
+    if (selectedCategory && category !== selectedCategory) return false;
+    if (selectedYear && yearOf_(activity, ['tanggal_surat_masuk', 'tanggal_mulai', 'created_at']) !== selectedYear) return false;
+    return true;
+  });
+
+  const reportsByActivity = {};
+  getRows_('MONITORING_LAPORAN', false).map(reportProgress_).forEach(function (report) {
+    const key = String(report.activity_id || '');
+    if (!key) return;
+    const current = reportsByActivity[key];
+    if (!current || String(report.updated_at || report.created_at || '') > String(current.updated_at || current.created_at || '')) reportsByActivity[key] = report;
+  });
+
+  const correspondenceByActivity = {};
+  getRows_('KORESPONDENSI', false).forEach(function (letter) {
+    const key = String(letter.activity_id || '');
+    if (!key) return;
+    if (!correspondenceByActivity[key]) correspondenceByActivity[key] = { incoming: null, outgoing: null, report: null };
+    const type = String(letter.jenis_surat || '').toUpperCase();
+    const slot = type.indexOf('MASUK') >= 0 ? 'incoming' : (type.indexOf('KELUAR') >= 0 || type.indexOf('BALASAN') >= 0) ? 'outgoing' : type.indexOf('LAPORAN') >= 0 ? 'report' : '';
+    if (!slot) return;
+    const current = correspondenceByActivity[key][slot];
+    if (!current || String(letter.tanggal || letter.updated_at || '') >= String(current.tanggal || current.updated_at || '')) correspondenceByActivity[key][slot] = letter;
+  });
+
+  const peopleByActivity = {};
+  getRows_('TIM_SPJ', false).forEach(function (person) {
+    const activityId = String(person.activity_id || ''), name = String(person.nama || '').trim();
+    if (!activityId || !name) return;
+    if (!peopleByActivity[activityId]) peopleByActivity[activityId] = { leader: [], workers: [], seen: {} };
+    const group = peopleByActivity[activityId], nameKey = name.toLowerCase().replace(/\s+/g, ' '), leader = String(person.peran || '').toUpperCase().indexOf('LEADER') >= 0;
+    if (group.seen[nameKey] !== undefined) {
+      if (leader && group.seen[nameKey] !== 'leader') {
+        group.workers = group.workers.filter(function (worker) { return worker.toLowerCase().replace(/\s+/g, ' ') !== nameKey; });
+        group.leader.push(name);
+        group.seen[nameKey] = 'leader';
+      }
+      return;
+    }
+    if (leader) group.leader.push(name); else group.workers.push(name);
+    group.seen[nameKey] = leader ? 'leader' : 'worker';
+  });
+
+  let items = activities.map(function (activity) {
+    const activityId = String(activity.activity_id), report = reportsByActivity[activityId] || {};
+    const letters = correspondenceByActivity[activityId] || {}, incoming = letters.incoming || {}, outgoing = letters.outgoing || {};
+    const people = peopleByActivity[activityId] || { leader: [], workers: [] };
+    const leader = people.leader.join(', ') || activity.pic || '';
+    const workers = people.workers.filter(function (name) { return name.toLowerCase().replace(/\s+/g, ' ') !== String(leader).toLowerCase().replace(/\s+/g, ' '); });
+    return Object.assign({}, report, {
+      activity_id: activityId,
+      report_id: report.report_id || '',
+      display_id: activity.display_id || activityId,
+      subbagian: activity.subbagian,
+      kategori: activity.kategori,
+      perusahaan: activity.perusahaan,
+      kebun: activity.kebun_lokasi || report.kebun || '',
+      perihal: incoming.perihal || outgoing.perihal || '',
+      kegiatan: activity.jenis_kegiatan || report.nama_kegiatan || '',
+      nilai_kontrak: activity.nilai_kontrak || 0,
+      tahun: activity.tahun || report.tahun || '',
+      status_kegiatan: activity.status || '',
+      leader: leader,
+      petugas: workers.join(', '),
+      no_surat_masuk: incoming.nomor_surat || activity.no_surat_masuk || '',
+      tanggal_surat_masuk: incoming.tanggal || activity.tanggal_surat_masuk || '',
+      no_surat_keluar: outgoing.nomor_surat || '',
+      tanggal_surat_keluar: outgoing.tanggal || '',
+      perihal_surat_keluar: outgoing.perihal || '',
+      status_laporan: report.status_hitung || report.status || 'BELUM TERHUBUNG',
+      checkpoint_laporan: report.checkpoint_terakhir || '',
+    });
+  });
+  if (query) {
+    items = items.filter(function (item) {
+      return Object.keys(item).map(function (key) { return String(item[key] || ''); }).join(' ').toLowerCase().indexOf(query) >= 0;
+    });
+  }
+  items.sort(function (left, right) {
+    return String(right.tanggal_surat_masuk || right.updated_at || '').localeCompare(String(left.tanggal_surat_masuk || left.updated_at || ''));
+  });
+  const stats = {
+    rp: items.filter(function (item) { return String(item.kategori).toUpperCase() === 'RP'; }).length,
+    bt: items.filter(function (item) { return String(item.subbagian).toUpperCase() === 'BT'; }).length,
+    tr: items.filter(function (item) { return String(item.subbagian).toUpperCase() === 'PLT' && String(item.kategori).toUpperCase() === 'TR'; }).length,
+    incoming: items.filter(function (item) { return Boolean(item.no_surat_masuk || item.tanggal_surat_masuk); }).length,
+    outgoing: items.filter(function (item) { return Boolean(item.no_surat_keluar || item.tanggal_surat_keluar); }).length,
+    linkedReports: items.filter(function (item) { return Boolean(item.report_id); }).length,
+    completedReports: items.filter(function (item) { return ['SELESAI', 'NET / RP27'].indexOf(String(item.status_laporan).toUpperCase()) >= 0; }).length,
+  };
+  const pageSize = Math.min(1000, Math.max(1, Number(options.pageSize || 200))), page = Math.max(1, Number(options.page || 1)), start = (page - 1) * pageSize;
+  return success_({ items: items.slice(start, start + pageSize), total: items.length, page: page, pages: Math.max(1, Math.ceil(items.length / pageSize)), stats: stats });
 }
 
 function validateData() {

@@ -65,11 +65,12 @@ function createActivity(payload) {
       appendRecord_(companySheet, company);
     }
     const activitySheet = spreadsheet.getSheetByName('KEGIATAN');
-    const prefix = 'ACT-' + year + '-';
+    const prefix = categoryIdPrefix_(category, subsection) + '-' + year + '-';
     const sequence = nextSequence_(activitySheet, 'activity_id', prefix);
+    const activityId = prefix + String(sequence).padStart(4, '0');
     created = {
-      activity_id: prefix + String(sequence).padStart(4, '0'),
-      display_id: category + '-' + String(payload.instansi || 'UPJKP').toUpperCase() + '-' + String(sequence).padStart(4, '0'),
+      activity_id: activityId,
+      display_id: activityId,
       company_id: company.company_id,
       perusahaan: companyName,
       subbagian: subsection,
@@ -91,6 +92,32 @@ function createActivity(payload) {
       archived_at: '',
     };
     appendRecord_(activitySheet, created);
+    const reportSheet = spreadsheet.getSheetByName('MONITORING_LAPORAN');
+    if (reportSheet) {
+      const netDate = dateIso_(payload.tanggal_net);
+      const workflow = category === 'RP' ? 'RP' : category === 'BT' ? 'BT' : 'UMUM';
+      appendRecord_(reportSheet, {
+        report_id: reportIdForActivity_(created.activity_id),
+        activity_id: created.activity_id,
+        company_id: company.company_id,
+        perusahaan: companyName,
+        regional: payload.regional || '',
+        kebun: payload.kebun_lokasi || '',
+        nama_kegiatan: payload.jenis_kegiatan || '',
+        tahun: year,
+        workflow: workflow,
+        tanggal_draft_masuk: dateIso_(payload.tanggal_surat_masuk),
+        checkpoint_terakhir: netDate ? 'NET' : 'DRAFT MASUK',
+        tanggal_checkpoint: netDate || dateIso_(payload.tanggal_surat_masuk),
+        tanggal_net: netDate,
+        status: netDate ? 'NET' : 'PROSES',
+        pic: payload.pic || '',
+        catatan: 'INPUT_DASHBOARD_BARU',
+        created_at: timestamp,
+        updated_at: timestamp,
+        archived_at: '',
+      });
+    }
     return created;
   });
   return success_({ activity: created, backupId: transaction.backupId });

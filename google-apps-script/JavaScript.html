@@ -23,12 +23,16 @@ const titles={
   bt:['Bantuan Teknis','Kegiatan lapangan, regional, tim pelaksana, dan progres laporan'],
   plt:['Pelatihan','Agenda pelatihan, peserta, tenaga ahli, dan souvenir'],
   admin:['Administrasi','Basis data, surat, dokumen, billing, RKAP, validasi, dan audit'],
+  'admin-rp':['Administrasi Rekomendasi Pemupukan','Perusahaan, kebun, surat, petugas, dan laporan RP dalam satu relasi'],
+  'admin-bt':['Administrasi Bantuan Teknis','Perusahaan, kebun, surat, petugas, dan laporan BT dalam satu relasi'],
+  'admin-tr':['Administrasi Pelatihan','Perusahaan, lokasi, surat, petugas, dan laporan Pelatihan dalam satu relasi'],
   'activities-admin':['Daftar Pekerjaan Administrasi','Pekerjaan konsultansi dan tahapan administrasi'],
   activities:['Daftar Kegiatan','Seluruh kegiatan terintegrasi dalam satu basis data'],
   'activities-rp':['Kegiatan Rekomendasi Pemupukan','Daftar pekerjaan rekomendasi per perusahaan, kebun, dan regional'],
   'activities-bt':['Kegiatan Bantuan Teknis','Daftar pekerjaan lapangan dan dukungan teknis'],
-  'reports-rp':['Monitoring Laporan Rekomendasi','Deadline 30 hari, tujuh checkpoint, NET, dan RP27'],
+  'reports-rp':['Monitoring Laporan Rekomendasi','Deadline 30 hari, enam checkpoint, dan NET'],
   'reports-bt':['Monitoring Laporan Bantuan Teknis','Draft, koreksi, revisi, cetak, dan pengiriman'],
+  'reports-tr':['Monitoring Laporan Pelatihan','Draft, koreksi, revisi, cetak, dan pengiriman laporan Pelatihan'],
   labs:['Dashboard Laboratorium','Monitoring sampel daun, tanah, KCD, dan umur proses'],
   jid:['JID & Inventory','Produk, mutasi stok, transaksi, dan pendapatan'],
   training:['Kegiatan Pelatihan','Jadwal, peserta, kesiapan, tenaga ahli, dan souvenir'],
@@ -36,7 +40,7 @@ const titles={
   billing:['UPJKP Billing Center','Tagihan lintas subbagian, pembayaran, dan aging piutang'],
   companies:['Master Perusahaan','Satu identitas perusahaan untuk seluruh histori layanan'],
   doses:['Lampiran Dosis','Dokumen rekomendasi dosis dan status verifikasi'],
-  correspondence:['Surat Masuk','Korespondensi dan dokumen kegiatan'],
+  correspondence:['Surat Masuk / Keluar','Korespondensi masuk, balasan, dan pengiriman laporan'],
   rkap:['RKAP','Target pendapatan per subbagian dan periode'],
   documents:['Dokumen','Arsip dokumen lintas modul dan versi'],
   'rp-team':['Tim & SPJ Rekomendasi','Tim pelaksana, HK, panjar, dan realisasi SPJ rekomendasi'],
@@ -99,13 +103,17 @@ async function render() {
       case 'rpjid': await renderUnit('RPJID'); break;
       case 'bt': await renderUnit('BT'); break;
       case 'plt': await renderUnit('PLT'); break;
-      case 'admin': await renderAdminDashboard(); break;
+      case 'admin': await renderAdminDashboardV2(); break;
+      case 'admin-rp': await renderAdministrativeUnit('RPJID','RP','admin-rp'); break;
+      case 'admin-bt': await renderAdministrativeUnit('BT','BT','admin-bt'); break;
+      case 'admin-tr': await renderAdministrativeUnit('PLT','TR','admin-tr'); break;
       case 'activities': await renderActivities(); break;
       case 'activities-rp': await renderActivities({subbagian:'RPJID',kategori:'RP'}); break;
       case 'activities-bt': await renderActivities({subbagian:'BT'}); break;
       case 'activities-admin': await renderActivities({subbagian:'ADM'}); break;
       case 'reports-rp': await renderReports('RP','RPJID'); break;
-      case 'reports-bt': await renderReports('UMUM','BT'); break;
+      case 'reports-bt': await renderReports('BT','BT'); break;
+      case 'reports-tr': await renderReports('UMUM','PLT'); break;
       case 'report-detail': await renderReportDetail(state.selectedRecord); break;
       case 'labs': await renderLabs(); break;
       case 'jid': await renderJid(false); break;
@@ -114,7 +122,7 @@ async function render() {
       case 'calendar': await renderTraining(true); break;
       case 'souvenirs': await renderSouvenirs(); break;
       case 'regional-rp': await renderRegional('RP','RPJID'); break;
-      case 'regional': await renderRegional('UMUM','BT'); break;
+      case 'regional': await renderRegional('BT','BT'); break;
       case 'billing': await renderBilling(); break;
       case 'experts': await renderSimple('experts','experts',[{key:'expert_id',label:'ID',cls:'mono'},{key:'nama',label:'Nama',render:value=>`<strong>${esc(value)}</strong>`},{key:'bidang_keahlian',label:'Bidang Keahlian'},{key:'kontak',label:'Kontak'},{key:'status_aktif',label:'Status',render:value=>statusBadge(String(value).toUpperCase()==='YA'?'AKTIF':'TIDAK AKTIF')}]); break;
       case 'companies': await renderSimple('companies','companies',[{key:'company_id',label:'ID',cls:'mono'},{key:'nama',label:'Perusahaan',render:value=>`<strong>${esc(value)}</strong>`},{key:'jenis_instansi',label:'Instansi'},{key:'regional',label:'Regional'},{key:'pic',label:'PIC'},{key:'status_aktif',label:'Status',render:value=>statusBadge(String(value).toUpperCase()==='YA'?'AKTIF':'TIDAK AKTIF')}]); break;
@@ -197,7 +205,7 @@ document.addEventListener('click',async event=>{
     else if (action==='alert-filter') {state.alertFilter=button.dataset.filter||'Semua';renderDashboard(state.dashboard)}
     else if (action==='report-detail') {
       const found=state.currentReports.find(row=>String(row.report_id)===String(button.dataset.id));
-      state.selectedRecord=button.dataset.id;state.returnView=state.view==='dashboard'?(found?.workflow==='RP'?'reports-rp':'reports-bt'):state.view;state.view='report-detail';state.query='';location.hash='/report-detail';await render();
+      state.selectedRecord=button.dataset.id;state.returnView=state.view==='dashboard'?(found?.workflow==='RP'?'reports-rp':found?.subbagian==='PLT'?'reports-tr':'reports-bt'):state.view;state.view='report-detail';state.query='';location.hash='/report-detail';await render();
     } else if (action==='product-detail') toast(`Produk ${button.dataset.id}: detail lengkap tersedia pada Google Sheet master.`);
     else if (action==='run-monitor') {
       toast('Pemeriksaan otomatis sedang berjalan…');const result=await callServer('runDailyMonitor');toast(`${result.notificationsCreated} notifikasi dan ${result.billingDraftsCreated} draft tagihan dibuat.`);await refresh();if(drawer.classList.contains('open'))await notifications();

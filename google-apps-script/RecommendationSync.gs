@@ -1,4 +1,4 @@
-const RP_SOURCE_DEFAULT_ID = '12gHG4c4t8_JeL_nW2YJ4bmgSCKE7krvSB4turxR6TTE';
+const RP_SOURCE_DEFAULT_ID = '1FDJQIZnrPDgAtTOoyLryTqlnRL69xGgBBzmNPmwzctc';
 const RP_SYNC_SCHEMA_VERSION = '2';
 
 function getRekomendasiSourceId_() {
@@ -232,7 +232,7 @@ function recommendationActivityRecord_(values, rowNumber) {
   const company = adminText_(values[6]);
   if (!company) return null;
   const sourceKey = adminText_(values[3]) || ('RP-ROW-' + rowNumber);
-  const activityId = 'ADM-SRC-' + sourceKey.replace(/[^A-Za-z0-9_-]/g, '-');
+  const activityId = categorySourceId_('RP', sourceKey);
   const incoming = sourceDate_(values[8]);
   const start = sourceDate_(values[32]);
   const end = sourceDate_(values[33]);
@@ -240,7 +240,7 @@ function recommendationActivityRecord_(values, rowNumber) {
   const record = {
     sourceKey: sourceKey,
     activityId: activityId,
-    reportId: 'LAP-' + activityId,
+    reportId: reportIdForActivity_(activityId),
     company: company,
     region: adminText_(values[1]),
     kind: adminText_(values[10]) || adminText_(values[9]) || 'Rekomendasi Pemupukan',
@@ -276,7 +276,7 @@ function recommendationReportRecord_(record, values) {
     { code: 'KOREKTOR 2', order: 3, person: adminText_(values[12]), incoming: sourceDate_(values[13]), outgoing: sourceDate_(values[14]) },
     { code: 'PERBAIKAN', order: 4, person: '', incoming: sourceDate_(values[16]), outgoing: sourceDate_(values[17]) },
     { code: 'CETAK 1', order: 5, person: adminText_(values[19]), incoming: sourceDate_(values[20]), outgoing: sourceDate_(values[21]) },
-    { code: 'KOREKSI FINAL', order: 6, person: adminText_(values[22]), incoming: sourceDate_(values[23]), outgoing: sourceDate_(values[24]) },
+    { code: 'KOREKTOR FINAL', order: 6, person: adminText_(values[22]), incoming: sourceDate_(values[23]), outgoing: sourceDate_(values[24]) },
     { code: 'PERBAIKAN FINAL', order: 7, person: '', incoming: sourceDate_(values[26]), outgoing: sourceDate_(values[27]) },
     { code: 'CETAK FINAL', order: 8, person: '', incoming: sourceDate_(values[28]), outgoing: net },
     { code: 'PENGIRIMAN', order: 9, person: '', incoming: sent, outgoing: sent },
@@ -286,6 +286,7 @@ function recommendationReportRecord_(record, values) {
     const date = stage.outgoing || stage.incoming;
     if (date) latest = { code: stage.code, date: date, person: stage.person };
   });
+  const lastCorrector = stages.slice().reverse().filter(function (stage) { return Boolean(stage.person); })[0] || null;
   return {
     report: {
       report_id: record.reportId,
@@ -298,7 +299,7 @@ function recommendationReportRecord_(record, values) {
       workflow: 'RP',
       tanggal_draft_masuk: draft,
       checkpoint_terakhir: latest ? latest.code : '',
-      korektor_terakhir: latest ? latest.person : '',
+      korektor_terakhir: lastCorrector ? lastCorrector.person : '',
       tanggal_checkpoint: latest ? latest.date : '',
       tanggal_revisi: sourceDate_(values[27]) || sourceDate_(values[24]),
       tanggal_cetak: net || sourceDate_(values[21]),

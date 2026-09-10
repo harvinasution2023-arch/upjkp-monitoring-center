@@ -10,14 +10,26 @@ function sourceRegionCode_(sheetName) {
   return value === 'R4P' ? 'R4P' : value === 'SW' ? 'SW' : value;
 }
 
+function sourceDateParts_(year, month, day) {
+  year = Number(year); month = Number(month); day = Number(day);
+  if (month > 12 && day >= 1 && day <= 12) { const swap = month; month = day; day = swap; }
+  if (year < 1900 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31) return '';
+  const check = new Date(year, month - 1, day);
+  if (check.getFullYear() !== year || check.getMonth() !== month - 1 || check.getDate() !== day) return '';
+  return String(year) + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+}
+
 function sourceDate_(value) {
   if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value)) return dateIso_(value);
   const text = String(value || '').trim();
   if (!text) return '';
   let match = text.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
-  if (match) return match[3] + '-' + String(match[2]).padStart(2, '0') + '-' + String(match[1]).padStart(2, '0');
+  if (match) {
+    const first = Number(match[1]), second = Number(match[2]);
+    return first <= 12 && second > 12 ? sourceDateParts_(match[3], first, second) : sourceDateParts_(match[3], second, first);
+  }
   match = text.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
-  if (match) return match[1] + '-' + String(match[2]).padStart(2, '0') + '-' + String(match[3]).padStart(2, '0');
+  if (match) return sourceDateParts_(match[1], match[2], match[3]);
   const parsed = parseDate_(text);
   return parsed ? dateIso_(parsed) : '';
 }
@@ -26,7 +38,30 @@ function sourceText_(value) {
   return String(value === null || value === undefined ? '' : value).trim();
 }
 
-function sourceRecord_(values, sheetName, rowNumber) {
+function sourceCorrectorStages_(values, correctorHeaders) {
+  const stages = [];
+  const directDate = sourceDate_(values[7]);
+  const directCorrector = sourceText_(values[8]);
+  if (directCorrector) {
+    stages.push({ code: 'DRAFT KOREKTOR', order: 0, person: directCorrector, incoming: directDate, outgoing: '' });
+  }
+  for (let index = 9; index <= 24; index += 2) {
+    const incoming = sourceDate_(values[index]);
+    const outgoing = sourceDate_(values[index + 1]);
+    if (!incoming && !outgoing) continue;
+    const number = (index - 9) / 2 + 1;
+    stages.push({
+      code: 'KOREKTOR ' + number,
+      order: number,
+      person: sourceText_((correctorHeaders || [])[index]) || directCorrector,
+      incoming: incoming,
+      outgoing: outgoing,
+    });
+  }
+  return stages;
+}
+
+function sourceRecord_(values, sheetName, rowNumber, correctorHeaders) {
   const region = sourceRegionCode_(sheetName);
   const no = sourceText_(values[0]) || String(rowNumber - 3);
   const company = sourceText_(values[1]);
@@ -40,15 +75,18 @@ function sourceRecord_(values, sheetName, rowNumber) {
   const sent = sourceDate_(values[27]);
   const revised = sourceDate_(values[25]);
   const printed = sourceDate_(values[26]);
-  const checkpointDates = [];
-  for (let index = 9; index <= 24; index += 2) {
-    if (sourceDate_(values[index])) checkpointDates.push({ date: sourceDate_(values[index]), in: true, number: (index - 9) / 2 + 1 });
-    if (sourceDate_(values[index + 1])) checkpointDates.push({ date: sourceDate_(values[index + 1]), in: false, number: (index - 9) / 2 + 1 });
+  const correctorStages = sourceCorrectorStages_(values, correctorHeaders);
+  // Korektor terakhir pada rangkaian BT diperlakukan sebagai pemeriksaan final
+  // setelah Korektor 1 dan Korektor 2, termasuk ketika tanggal cetak belum diisi.
+  if (correctorStages.length) {
+    correctorStages[correctorStages.length - 1].code = 'KOREKTOR FINAL';
   }
-  const lastCheckpoint = checkpointDates.length ? checkpointDates[checkpointDates.length - 1] : null;
-  let checkpoint = lastCheckpoint ? 'KOREKTOR ' + lastCheckpoint.number : '';
-  if (printed) checkpoint = 'CETAK 1';
-  if (sent || statusSource === 'SELESAI') checkpoint = 'SELESAI';
+  const lastCheckpoint = correctorStages.length ? correctorStages[correctorStages.length - 1] : null;
+  const lastNamedCorrector = correctorStages.slice().reverse().find(function (stage) { return Boolean(stage.person); }) || null;
+  let checkpoint = lastCheckpoint ? lastCheckpoint.code : '';
+  let checkpointDate = lastCheckpoint ? (lastCheckpoint.outgoing || lastCheckpoint.incoming) : (printed || revised || draft);
+  if (printed) { checkpoint = correctorStages.length ? 'KOREKTOR FINAL' : 'CETAK 1'; checkpointDate = lastNamedCorrector ? (lastNamedCorrector.outgoing || lastNamedCorrector.incoming || printed) : printed; }
+  if (sent || statusSource === 'SELESAI') { checkpoint = 'NET'; checkpointDate = sent || checkpointDate || printed; }
   const year = Number(sourceText_(values[29])) || (draft ? Number(draft.slice(0, 4)) : Number(Utilities.formatDate(new Date(), APP.TIMEZONE, 'yyyy')));
   const visit = sourceText_(values[4]);
   const note = ['SOURCE_SYNC=BT', visit ? 'Tanggal kunjungan: ' + visit : '', sourceText_(values[31])].filter(Boolean).join(' | ');
@@ -56,7 +94,7 @@ function sourceRecord_(values, sheetName, rowNumber) {
     sourceKey: sourceKey, activityId: activityId, reportId: reportId, company: company, kebun: kebun,
     pic: sourceText_(values[3]), activity: sourceText_(values[5]) || 'Bantuan Teknis', region: region, year: year,
     draft: draft, revised: revised, printed: printed, sent: sent, checkpoint: checkpoint,
-    checkpointDate: lastCheckpoint ? lastCheckpoint.date : (printed || revised || draft), statusSource: statusSource,
+    checkpointDate: checkpointDate, corrector: lastNamedCorrector ? lastNamedCorrector.person : '', correctorStages: correctorStages, statusSource: statusSource,
     folder: sourceText_(values[30]), note: note,
   };
 }
@@ -89,12 +127,13 @@ function syncBantuanTeknisNow(options) {
     if (!sheet) { missingSheets.push(sheetName); return; }
     const lastRow = Math.min(Math.max(sheet.getLastRow(), 3), 1001);
     if (lastRow < 4) return;
+    const correctorHeaders = sheet.getRange(2, 1, 1, 32).getDisplayValues()[0];
     sheet.getRange(4, 1, lastRow - 3, 32).getDisplayValues().forEach(function (values, index) {
-      const record = sourceRecord_(values, sheetName, index + 4);
+      const record = sourceRecord_(values, sheetName, index + 4, correctorHeaders);
       if (record) records.push(record);
     });
   });
-  let insertedActivities = 0, updatedActivities = 0, insertedReports = 0, updatedReports = 0, companiesCreated = 0;
+  let insertedActivities = 0, updatedActivities = 0, insertedReports = 0, updatedReports = 0, historyRows = 0, companiesCreated = 0;
   const errors = [];
   const transaction = withWriteTransaction_({
     actor: currentUser_(), action: 'sync_bt_source', tableName: 'MULTI', recordId: sourceId,
@@ -103,6 +142,7 @@ function syncBantuanTeknisNow(options) {
     const companiesSheet = master.getSheetByName('MASTER_PERUSAHAAN');
     const activitiesSheet = master.getSheetByName('KEGIATAN');
     const reportsSheet = master.getSheetByName('MONITORING_LAPORAN');
+    const historySheet = master.getSheetByName('HISTORI_LAPORAN');
     const companies = {};
     rowsFromSheet_(companiesSheet, false).forEach(function (row) { companies[String(row.nama || '').toLowerCase().replace(/\s+/g, ' ').trim()] = row.company_id; });
     records.forEach(function (record) {
@@ -124,22 +164,31 @@ function syncBantuanTeknisNow(options) {
         if (activityResult === 'inserted') insertedActivities += 1; else updatedActivities += 1;
         const reportResult = upsertMappedRecord_(reportsSheet, 'report_id', record.reportId, {
           report_id: record.reportId, activity_id: record.activityId, company_id: companyId, perusahaan: record.company,
-          regional: record.region, kebun: record.kebun, nama_kegiatan: record.activity, tahun: record.year, workflow: 'UMUM',
-          tanggal_draft_masuk: record.draft, checkpoint_terakhir: record.checkpoint, tanggal_checkpoint: record.checkpointDate,
+          regional: record.region, kebun: record.kebun, nama_kegiatan: record.activity, tahun: record.year, workflow: 'BT',
+          tanggal_draft_masuk: record.draft, checkpoint_terakhir: record.checkpoint, korektor_terakhir: record.corrector, tanggal_checkpoint: record.checkpointDate,
           tanggal_revisi: record.revised, tanggal_cetak: record.printed, tanggal_kirim: record.sent,
           folder_laporan: record.folder, status: record.statusSource || (record.checkpoint ? 'PROSES' : 'DRAFT'), pic: record.pic,
           catatan: record.note, updated_at: nowIso_(), created_at: nowIso_(), archived_at: '',
         });
         if (reportResult === 'inserted') insertedReports += 1; else updatedReports += 1;
+        record.correctorStages.forEach(function (stage) {
+          const historyId = record.reportId + '-BT-' + stage.code.replace(/\s+/g, '-');
+          upsertMappedRecord_(historySheet, 'history_id', historyId, {
+            history_id: historyId, report_id: record.reportId, checkpoint: stage.code, urutan: stage.order,
+            korektor: stage.person, tanggal_masuk: stage.incoming, tanggal_selesai: stage.outgoing,
+            catatan: 'SOURCE_SYNC=BT', created_at: nowIso_(), created_by: currentUser_(),
+          });
+          historyRows += 1;
+        });
       } catch (error) { errors.push(record.sourceKey + ': ' + error.message); }
     });
   }, { skipBackup: Boolean(options.automatic) });
   return success_({
     sourceSpreadsheetId: sourceId, sourceUrl: source.getUrl(), rowsRead: records.length,
     insertedActivities: insertedActivities, updatedActivities: updatedActivities,
-    insertedReports: insertedReports, updatedReports: updatedReports, companiesCreated: companiesCreated,
+    insertedReports: insertedReports, updatedReports: updatedReports, historyRows: historyRows, companiesCreated: companiesCreated,
     missingSheets: missingSheets, errors: errors.slice(0, 20), backupId: transaction.backupId,
-    message: records.length + ' baris Bantuan Teknis disinkronkan (' + insertedReports + ' baru, ' + updatedReports + ' diperbarui).',
+    message: records.length + ' baris Bantuan Teknis disinkronkan (' + insertedReports + ' baru, ' + updatedReports + ' diperbarui, ' + historyRows + ' tahap korektor).',
   });
 }
 

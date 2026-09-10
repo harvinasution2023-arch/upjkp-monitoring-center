@@ -57,6 +57,26 @@ def number(value: Any) -> float:
         return 0.0
 
 
+def id_safe_key(value: Any) -> str:
+    text = re.sub(r"[^A-Za-z0-9_-]+", "-", str(value or "").strip())
+    text = re.sub(r"-+", "-", text).strip("-")
+    return text[:100] or "ROW"
+
+
+def category_id_prefix(category: str, subsection: str = "") -> str:
+    code = str(category or "").upper()
+    unit = str(subsection or "").upper()
+    if code in {"RP", "BT", "TR", "JID"}:
+        return code
+    if unit == "PLT":
+        return "TR"
+    if unit == "BT":
+        return "BT"
+    if unit == "RPJID":
+        return "RP"
+    return code or "ADM"
+
+
 def year_of(row: dict[str, Any], *fields: str) -> int | None:
     raw_year = row.get("tahun")
     try:
@@ -440,10 +460,10 @@ def create_activity(repository: WorkbookRepository, payload: dict[str, Any], act
             )
 
         activities = workbook["KEGIATAN"]
-        prefix = f"ACT-{selected_year}-"
+        prefix = f"{category_id_prefix(category, subsection)}-{selected_year}-"
         sequence = next_sequence(activities, "activity_id", prefix)
         activity_id = f"{prefix}{sequence:04d}"
-        display_id = f"{category}-{str(payload.get('instansi') or 'UPJKP').upper()}-{sequence:04d}"
+        display_id = activity_id
         record = {
             "activity_id": activity_id,
             "display_id": display_id,
@@ -502,22 +522,22 @@ def build_demo_rows(today: date | None = None) -> dict[str, list[dict[str, Any]]
         for cid, name, regional in companies
     ]
     activities = [
-        {"activity_id": "ACT-DEMO-0001", "display_id": "RP-UPJKP-0001", "company_id": "PRSH-0001", "perusahaan": companies[0][1], "subbagian": "RPJID", "kategori": "RP", "jenis_kegiatan": "Rekomendasi Pemupukan 2027", "regional": "R1", "kebun_lokasi": "Kebun A", "tahun": today.year, "tanggal_surat_masuk": iso(-50), "tanggal_spk": iso(-42), "nilai_kontrak": 475_000_000, "hpp": 62_000_000, "pic": "Dewi", "status": "AKTIF", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
-        {"activity_id": "ACT-DEMO-0002", "display_id": "BT-UPJKP-0001", "company_id": "PRSH-0002", "perusahaan": companies[1][1], "subbagian": "BT", "kategori": "BT", "jenis_kegiatan": "Evaluasi TBM Kelapa Sawit", "regional": "R2", "kebun_lokasi": "Kebun Bahagia", "tahun": today.year, "tanggal_surat_masuk": iso(-28), "tanggal_spk": iso(-24), "batas_akhir": iso(8), "nilai_kontrak": 185_000_000, "hpp": 38_500_000, "pic": "Rizal", "status": "AKTIF", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
-        {"activity_id": "ACT-DEMO-0003", "display_id": "TR-UPJKP-0001", "company_id": "PRSH-0003", "perusahaan": companies[2][1], "subbagian": "PLT", "kategori": "TR", "jenis_kegiatan": "Pelatihan Panen Presisi", "regional": "R4P", "kebun_lokasi": "Medan", "tahun": today.year, "tanggal_surat_masuk": iso(-12), "nilai_kontrak": 125_000_000, "hpp": 31_000_000, "pic": "Nina", "status": "AKTIF", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
-        {"activity_id": "ACT-DEMO-0004", "display_id": "JID-UPJKP-0001", "company_id": "PRSH-0004", "perusahaan": companies[3][1], "subbagian": "RPJID", "kategori": "JID", "jenis_kegiatan": "Pengadaan Automatic Weather Station", "regional": "SW", "kebun_lokasi": "Kebun Lestari", "tahun": today.year, "tanggal_surat_masuk": iso(-18), "nilai_kontrak": 210_000_000, "hpp": 118_000_000, "pic": "Agus", "status": "AKTIF", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
-        {"activity_id": "ACT-DEMO-0005", "display_id": "ADM-UPJKP-0001", "company_id": "PRSH-0001", "perusahaan": companies[0][1], "subbagian": "ADM", "kategori": "LN", "jenis_kegiatan": "Pembaruan Kontrak Payung", "regional": "R1", "kebun_lokasi": "Kantor Pusat", "tahun": today.year, "tanggal_surat_masuk": iso(-9), "nilai_kontrak": 0, "hpp": 0, "pic": "Sari", "status": "PROSES", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
+        {"activity_id": "RP-DEMO-0001", "display_id": "RP-DEMO-0001", "company_id": "PRSH-0001", "perusahaan": companies[0][1], "subbagian": "RPJID", "kategori": "RP", "jenis_kegiatan": "Rekomendasi Pemupukan 2027", "regional": "R1", "kebun_lokasi": "Kebun A", "tahun": today.year, "tanggal_surat_masuk": iso(-50), "tanggal_spk": iso(-42), "nilai_kontrak": 475_000_000, "hpp": 62_000_000, "pic": "Dewi", "status": "AKTIF", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
+        {"activity_id": "BT-DEMO-0001", "display_id": "BT-DEMO-0001", "company_id": "PRSH-0002", "perusahaan": companies[1][1], "subbagian": "BT", "kategori": "BT", "jenis_kegiatan": "Evaluasi TBM Kelapa Sawit", "regional": "R2", "kebun_lokasi": "Kebun Bahagia", "tahun": today.year, "tanggal_surat_masuk": iso(-28), "tanggal_spk": iso(-24), "batas_akhir": iso(8), "nilai_kontrak": 185_000_000, "hpp": 38_500_000, "pic": "Rizal", "status": "AKTIF", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
+        {"activity_id": "TR-DEMO-0001", "display_id": "TR-DEMO-0001", "company_id": "PRSH-0003", "perusahaan": companies[2][1], "subbagian": "PLT", "kategori": "TR", "jenis_kegiatan": "Pelatihan Panen Presisi", "regional": "R4P", "kebun_lokasi": "Medan", "tahun": today.year, "tanggal_surat_masuk": iso(-12), "nilai_kontrak": 125_000_000, "hpp": 31_000_000, "pic": "Nina", "status": "AKTIF", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
+        {"activity_id": "JID-DEMO-0001", "display_id": "JID-DEMO-0001", "company_id": "PRSH-0004", "perusahaan": companies[3][1], "subbagian": "RPJID", "kategori": "JID", "jenis_kegiatan": "Pengadaan Automatic Weather Station", "regional": "SW", "kebun_lokasi": "Kebun Lestari", "tahun": today.year, "tanggal_surat_masuk": iso(-18), "nilai_kontrak": 210_000_000, "hpp": 118_000_000, "pic": "Agus", "status": "AKTIF", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
+        {"activity_id": "ADM-DEMO-0001", "display_id": "ADM-DEMO-0001", "company_id": "PRSH-0001", "perusahaan": companies[0][1], "subbagian": "ADM", "kategori": "LN", "jenis_kegiatan": "Pembaruan Kontrak Payung", "regional": "R1", "kebun_lokasi": "Kantor Pusat", "tahun": today.year, "tanggal_surat_masuk": iso(-9), "nilai_kontrak": 0, "hpp": 0, "pic": "Sari", "status": "PROSES", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
     ]
     reports = [
-        {"report_id": "LAP-DEMO-0001", "activity_id": "ACT-DEMO-0001", "company_id": "PRSH-0001", "perusahaan": companies[0][1], "regional": "R1", "kebun": "Kebun A", "nama_kegiatan": "Rekomendasi Pemupukan 2027", "tahun": today.year, "workflow": "RP", "tanggal_draft_masuk": iso(-35), "checkpoint_terakhir": "KOREKTOR 2 CETAK", "korektor_terakhir": "Edi Sigit", "tanggal_checkpoint": iso(-4), "status": "KOREKTOR 2 CETAK", "pic": "Dewi", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
-        {"report_id": "LAP-DEMO-0002", "activity_id": "ACT-DEMO-0002", "company_id": "PRSH-0002", "perusahaan": companies[1][1], "regional": "R2", "kebun": "Kebun Bahagia", "nama_kegiatan": "Evaluasi TBM Kelapa Sawit", "tahun": today.year, "workflow": "UMUM", "tanggal_draft_masuk": iso(-26), "checkpoint_terakhir": "DIREVISI", "korektor_terakhir": "Josep", "tanggal_checkpoint": iso(-2), "tanggal_revisi": iso(-2), "status": "DIREVISI", "pic": "Rizal", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
-        {"report_id": "LAP-DEMO-0003", "activity_id": "ACT-DEMO-0004", "company_id": "PRSH-0004", "perusahaan": companies[3][1], "regional": "SW", "kebun": "Kebun Lestari", "nama_kegiatan": "Dokumentasi Instalasi AWS", "tahun": today.year, "workflow": "UMUM", "tanggal_draft_masuk": iso(-18), "checkpoint_terakhir": "DIKOREKSI", "korektor_terakhir": "Desra", "tanggal_checkpoint": iso(-5), "status": "DIKOREKSI", "pic": "Agus", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
-        {"report_id": "LAP-DEMO-0004", "activity_id": "ACT-DEMO-0003", "company_id": "PRSH-0003", "perusahaan": companies[2][1], "regional": "R4P", "kebun": "Medan", "nama_kegiatan": "Laporan Pelatihan Panen Presisi", "tahun": today.year, "workflow": "UMUM", "tanggal_draft_masuk": iso(-40), "tanggal_kirim": iso(-12), "tanggal_net": iso(-13), "checkpoint_terakhir": "NET / RP27", "rp27": "RP27_Pelatihan_PTPN_Medan", "status": "NET / RP27", "pic": "Nina", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
+        {"report_id": "LAP-RP-DEMO-0001", "activity_id": "RP-DEMO-0001", "company_id": "PRSH-0001", "perusahaan": companies[0][1], "regional": "R1", "kebun": "Kebun A", "nama_kegiatan": "Rekomendasi Pemupukan 2027", "tahun": today.year, "workflow": "RP", "tanggal_draft_masuk": iso(-35), "checkpoint_terakhir": "KOREKTOR 2 CETAK", "korektor_terakhir": "Edi Sigit", "tanggal_checkpoint": iso(-4), "status": "KOREKTOR 2 CETAK", "pic": "Dewi", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
+        {"report_id": "LAP-BT-DEMO-0001", "activity_id": "BT-DEMO-0001", "company_id": "PRSH-0002", "perusahaan": companies[1][1], "regional": "R2", "kebun": "Kebun Bahagia", "nama_kegiatan": "Evaluasi TBM Kelapa Sawit", "tahun": today.year, "workflow": "BT", "tanggal_draft_masuk": iso(-26), "checkpoint_terakhir": "DIREVISI", "korektor_terakhir": "Josep", "tanggal_checkpoint": iso(-2), "tanggal_revisi": iso(-2), "status": "DIREVISI", "pic": "Rizal", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
+        {"report_id": "LAP-JID-DEMO-0001", "activity_id": "JID-DEMO-0001", "company_id": "PRSH-0004", "perusahaan": companies[3][1], "regional": "SW", "kebun": "Kebun Lestari", "nama_kegiatan": "Dokumentasi Instalasi AWS", "tahun": today.year, "workflow": "UMUM", "tanggal_draft_masuk": iso(-18), "checkpoint_terakhir": "DIKOREKSI", "korektor_terakhir": "Desra", "tanggal_checkpoint": iso(-5), "status": "DIKOREKSI", "pic": "Agus", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
+        {"report_id": "LAP-TR-DEMO-0001", "activity_id": "TR-DEMO-0001", "company_id": "PRSH-0003", "perusahaan": companies[2][1], "regional": "R4P", "kebun": "Medan", "nama_kegiatan": "Laporan Pelatihan Panen Presisi", "tahun": today.year, "workflow": "UMUM", "tanggal_draft_masuk": iso(-40), "tanggal_kirim": iso(-12), "tanggal_net": iso(-13), "checkpoint_terakhir": "NET / RP27", "rp27": "RP27_Pelatihan_PTPN_Medan", "status": "NET / RP27", "pic": "Nina", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
     ]
     billings = [
-        {"billing_id": "BIL-DEMO-0001", "company_id": "PRSH-0001", "perusahaan": companies[0][1], "source_type": "LAPORAN", "source_id": "LAP-DEMO-0001", "nilai": 475_000_000, "tanggal_siap_tagih": iso(-6), "nomor_invoice": "INV-DEMO-001", "tanggal_invoice": iso(-5), "jatuh_tempo": iso(25), "status": "MENUNGGU PEMBAYARAN", "total_pembayaran": 0, "pic": "Sari", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
-        {"billing_id": "BIL-DEMO-0002", "company_id": "PRSH-0002", "perusahaan": companies[1][1], "source_type": "KEGIATAN", "source_id": "ACT-DEMO-0002", "nilai": 185_000_000, "tanggal_siap_tagih": iso(-50), "nomor_invoice": "INV-DEMO-002", "tanggal_invoice": iso(-45), "jatuh_tempo": iso(-15), "status": "JATUH TEMPO", "total_pembayaran": 60_000_000, "pic": "Sari", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
-        {"billing_id": "BIL-DEMO-0003", "company_id": "PRSH-0003", "perusahaan": companies[2][1], "source_type": "PELATIHAN", "source_id": "ACT-DEMO-0003", "nilai": 125_000_000, "tanggal_siap_tagih": iso(-12), "nomor_invoice": "INV-DEMO-003", "tanggal_invoice": iso(-10), "jatuh_tempo": iso(20), "status": "LUNAS", "total_pembayaran": 125_000_000, "tanggal_pembayaran": iso(-2), "pic": "Sari", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
+        {"billing_id": "BIL-DEMO-0001", "company_id": "PRSH-0001", "perusahaan": companies[0][1], "source_type": "LAPORAN", "source_id": "LAP-RP-DEMO-0001", "nilai": 475_000_000, "tanggal_siap_tagih": iso(-6), "nomor_invoice": "INV-DEMO-001", "tanggal_invoice": iso(-5), "jatuh_tempo": iso(25), "status": "MENUNGGU PEMBAYARAN", "total_pembayaran": 0, "pic": "Sari", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
+        {"billing_id": "BIL-DEMO-0002", "company_id": "PRSH-0002", "perusahaan": companies[1][1], "source_type": "KEGIATAN", "source_id": "BT-DEMO-0001", "nilai": 185_000_000, "tanggal_siap_tagih": iso(-50), "nomor_invoice": "INV-DEMO-002", "tanggal_invoice": iso(-45), "jatuh_tempo": iso(-15), "status": "JATUH TEMPO", "total_pembayaran": 60_000_000, "pic": "Sari", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
+        {"billing_id": "BIL-DEMO-0003", "company_id": "PRSH-0003", "perusahaan": companies[2][1], "source_type": "PELATIHAN", "source_id": "TR-DEMO-0001", "nilai": 125_000_000, "tanggal_siap_tagih": iso(-12), "nomor_invoice": "INV-DEMO-003", "tanggal_invoice": iso(-10), "jatuh_tempo": iso(20), "status": "LUNAS", "total_pembayaran": 125_000_000, "tanggal_pembayaran": iso(-2), "pic": "Sari", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
     ]
     products = [
         {"product_id": "PRD-0001", "nama": "Ombrometer", "deskripsi": "Alat ukur curah hujan manual", "spesifikasi": "Tabung presisi, dudukan lapangan", "harga": 2_500_000, "satuan": "unit", "minimum_stok": 5, "status_aktif": "YA", "created_at": now, "updated_at": now},
@@ -533,11 +553,11 @@ def build_demo_rows(today: date | None = None) -> dict[str, list[dict[str, Any]]
         {"stock_id": "STK-DEMO-0006", "product_id": "PRD-0003", "jenis_mutasi": "PENJUALAN", "tanggal": iso(-18), "jumlah": 2, "pic": "Agus", "catatan": "DEMO / SAMPLE DATA", "created_at": now},
     ]
     jid = [
-        {"transaction_id": "JID-DEMO-0001", "product_id": "PRD-0003", "company_id": "PRSH-0004", "perusahaan": companies[3][1], "activity_id": "ACT-DEMO-0004", "tanggal": iso(-18), "jumlah": 2, "harga_satuan": 70_000_000, "nilai": 140_000_000, "status_tagihan": "BELUM DITAGIH", "pic": "Agus", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
+        {"transaction_id": "JID-DEMO-0001", "product_id": "PRD-0003", "company_id": "PRSH-0004", "perusahaan": companies[3][1], "activity_id": "JID-DEMO-0001", "tanggal": iso(-18), "jumlah": 2, "harga_satuan": 70_000_000, "nilai": 140_000_000, "status_tagihan": "BELUM DITAGIH", "pic": "Agus", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
         {"transaction_id": "JID-DEMO-0002", "product_id": "PRD-0001", "company_id": "PRSH-0001", "perusahaan": companies[0][1], "tanggal": iso(-12), "jumlah": 11, "harga_satuan": 2_500_000, "nilai": 27_500_000, "status_tagihan": "LUNAS", "pic": "Agus", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
     ]
     labs = [
-        {"lab_id": "LAB-DEMO-0001", "company_id": "PRSH-0001", "perusahaan": companies[0][1], "activity_id": "ACT-DEMO-0001", "kebun": "Kebun A", "jenis_analisis": "DAUN", "jumlah_kcd": 128, "tahun": today.year, "tanggal_sampel_masuk": iso(-14), "tanggal_mulai_proses": iso(-12), "status": "PROSES", "pic": "Budi", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
+        {"lab_id": "LAB-DEMO-0001", "company_id": "PRSH-0001", "perusahaan": companies[0][1], "activity_id": "RP-DEMO-0001", "kebun": "Kebun A", "jenis_analisis": "DAUN", "jumlah_kcd": 128, "tahun": today.year, "tanggal_sampel_masuk": iso(-14), "tanggal_mulai_proses": iso(-12), "status": "PROSES", "pic": "Budi", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
         {"lab_id": "LAB-DEMO-0002", "company_id": "PRSH-0002", "perusahaan": companies[1][1], "kebun": "Kebun Bahagia", "jenis_analisis": "TANAH", "jumlah_kcd": 74, "tahun": today.year, "tanggal_sampel_masuk": iso(-31), "tanggal_selesai": iso(-3), "status": "SELESAI", "pic": "Budi", "catatan": "DEMO / SAMPLE DATA", "created_at": now, "updated_at": now},
     ]
     trainings = [

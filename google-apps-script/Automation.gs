@@ -52,7 +52,7 @@ function runDailyMonitor() {
 
   reports.forEach(function (row) {
     const reportId = String(row.report_id || '');
-    if (row.status_hitung === 'NET / RP27') {
+    if (row.tanggal_net || row.status_hitung === 'NET / RP27') {
       addNotification(
         'report:' + reportId + ':net', 'BILLING', 'TINGGI', 'Laporan NET siap ditagih',
         (row.perusahaan || '') + ' · ' + (row.kebun || '') + ' · ' + (row.rp27 || ''),

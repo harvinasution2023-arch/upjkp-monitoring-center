@@ -75,3 +75,35 @@ function jsonSafe_(value) {
 function success_(data) {
   return { ok: true, data: data, meta: { version: APP.VERSION, generatedAt: nowIso_() } };
 }
+
+function idSafeKey_(value) {
+  return String(value === null || value === undefined ? '' : value)
+    .trim()
+    .replace(/[^A-Za-z0-9_-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 100) || 'ROW';
+}
+
+function categoryIdPrefix_(category, subsection) {
+  const code = String(category || '').toUpperCase();
+  const unit = String(subsection || '').toUpperCase();
+  if (code === 'RP') return 'RP';
+  if (code === 'BT') return 'BT';
+  if (code === 'TR') return 'TR';
+  if (code === 'JID') return 'JID';
+  if (unit === 'PLT') return 'TR';
+  if (unit === 'BT') return 'BT';
+  if (unit === 'RPJID') return 'RP';
+  return code || 'ADM';
+}
+
+function categorySourceId_(category, sourceKey, subsection) {
+  const prefix = categoryIdPrefix_(category, subsection);
+  const safeKey = idSafeKey_(sourceKey);
+  return safeKey.toUpperCase().indexOf(prefix + '-') === 0 ? safeKey : prefix + '-' + safeKey;
+}
+
+function reportIdForActivity_(activityId) {
+  return 'LAP-' + idSafeKey_(activityId);
+}

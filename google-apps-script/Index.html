@@ -76,14 +76,18 @@
         <p>Pelatihan</p>
         <button class="nav" data-view="plt"><svg><use href="#i-grid"/></svg><span>Dashboard Pelatihan</span></button>
         <button class="nav" data-view="training"><svg><use href="#i-briefcase"/></svg><span>Kegiatan Pelatihan</span></button>
+        <button class="nav" data-view="admin-tr"><svg><use href="#i-file"/></svg><span>Administrasi Pelatihan</span></button>
+        <button class="nav" data-view="reports-tr"><svg><use href="#i-file"/></svg><span>Monitoring Laporan</span></button>
         <button class="nav" data-view="calendar"><svg><use href="#i-calendar"/></svg><span>Kalender</span></button>
         <button class="nav" data-view="experts"><svg><use href="#i-award"/></svg><span>Tenaga Ahli</span></button>
         <button class="nav" data-view="souvenirs"><svg><use href="#i-gift"/></svg><span>Souvenir</span></button>
         <p>Administrasi</p>
         <button class="nav" data-view="admin"><svg><use href="#i-grid"/></svg><span>Dashboard Administrasi</span></button>
-        <button class="nav" data-view="activities-admin"><svg><use href="#i-file"/></svg><span>Daftar Pekerjaan</span></button>
+        <button class="nav" data-view="admin-rp"><svg><use href="#i-file"/></svg><span>Administrasi RP</span></button>
+        <button class="nav" data-view="admin-bt"><svg><use href="#i-file"/></svg><span>Administrasi BT</span></button>
+        <button class="nav" data-view="activities-admin"><svg><use href="#i-briefcase"/></svg><span>Administrasi Umum</span></button>
         <button class="nav" data-view="companies"><svg><use href="#i-building"/></svg><span>Perusahaan</span></button>
-        <button class="nav" data-view="correspondence"><svg><use href="#i-mail"/></svg><span>Surat Masuk</span></button>
+        <button class="nav" data-view="correspondence"><svg><use href="#i-mail"/></svg><span>Surat Masuk / Keluar</span></button>
         <button class="nav" data-view="billing"><svg><use href="#i-wallet"/></svg><span>Billing &amp; Pembayaran</span></button>
         <button class="nav" data-view="rkap"><svg><use href="#i-target"/></svg><span>RKAP</span></button>
         <button class="nav" data-view="documents"><svg><use href="#i-folder"/></svg><span>Dokumen</span></button>
@@ -136,6 +140,7 @@
         <label>Kebun/lokasi<input name="kebun_lokasi" placeholder="Kebun atau lokasi"></label>
         <label>Tahun<input name="tahun" type="number" min="2000" max="2100"></label>
         <label>Tanggal surat masuk<input name="tanggal_surat_masuk" type="date"></label>
+        <label>Tanggal NET (opsional)<input name="tanggal_net" type="date"><small class="muted">Isi jika laporan baru sudah NET.</small></label>
         <label>Nilai kontrak<input name="nilai_kontrak" inputmode="numeric" placeholder="0"></label>
         <label>HPP<input name="hpp" inputmode="numeric" placeholder="0"></label>
         <label>PIC<input name="pic" placeholder="Nama PIC"></label>

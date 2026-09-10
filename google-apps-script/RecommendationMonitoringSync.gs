@@ -5,7 +5,7 @@ const RP_MONITORING_SHEET_CONFIG = Object.freeze({
   'Reg II KSO': { code: 'R2KSO', company: 'PT Perkebunan Nusantara IV Regional II KSO', region: 'Regional II KSO', layout: 'STANDARD' },
   'Reg III P': { code: 'R3P', company: 'PT Perkebunan Nusantara IV Regional III', region: 'Regional III', layout: 'STANDARD' },
   'Reg IV P': { code: 'R4P', company: 'PT Perkebunan Nusantara IV Regional IV', region: 'Regional IV', layout: 'STANDARD' },
-  'Reg V P': { code: 'R5P', company: 'PT Perkebunan Nusantara IV Regional V', region: 'Regional V', layout: 'STANDARD' },
+  'Reg V P': { code: 'R5P', company: 'PT Perkebunan Nusantara IV Regional V', region: 'Regional V', layout: 'R5' },
   'REG 6 KSO': { code: 'R6KSO', company: 'PT Perkebunan Nusantara IV Regional VI KSO', region: 'Regional VI KSO', layout: 'R6KSO' },
   'Reg VII': { code: 'R7', company: 'PT Perkebunan Nusantara IV Regional VII', region: 'Regional VII', layout: 'R7' },
   'Swasta': { code: 'SW', company: '', region: 'Swasta', layout: 'PRIVATE' },
@@ -59,19 +59,17 @@ function recommendationMonitoringRecord_(values, sheetName, rowNumber) {
     stages = [
       recommendationMonitoringStage_('KOREKTOR 1', 1, values[6], values[7], values[8]),
       recommendationMonitoringStage_('KOREKTOR 2', 2, values[9], values[10], values[11]),
-      recommendationMonitoringStage_('CETAK 1', 3, values[12], values[13], ''),
-      recommendationMonitoringStage_('CETAK FINAL', 4, '', values[14], values[15]),
-      recommendationMonitoringStage_('PENGIRIMAN', 5, '', values[16], values[16]),
+      recommendationMonitoringStage_('CETAK 1', 3, '', values[14], values[15]),
+      recommendationMonitoringStage_('KOREKTOR FINAL', 4, values[12], values[13], ''),
+      recommendationMonitoringStage_('NET', 5, '', values[16], values[16]),
     ];
   } else if (config.layout === 'R1KSO') {
     stages = [
       recommendationMonitoringStage_('KOREKTOR 1', 1, values[4], values[5], ''),
       recommendationMonitoringStage_('KOREKTOR 2', 2, values[6], values[7], values[8]),
-      recommendationMonitoringStage_('VERIFIKASI DRAFT', 3, values[9], values[10], ''),
-      recommendationMonitoringStage_('CETAK 1', 4, values[13], values[14], values[15]),
-      recommendationMonitoringStage_('VERIFIKASI FINAL', 5, values[16], values[17], ''),
-      recommendationMonitoringStage_('CETAK FINAL', 6, '', values[18], values[19]),
-      recommendationMonitoringStage_('PENGIRIMAN', 7, '', values[20], values[20]),
+      recommendationMonitoringStage_('CETAK 1', 3, '', values[18], values[19]),
+      recommendationMonitoringStage_('KOREKTOR FINAL', 4, values[13], values[14], values[15]),
+      recommendationMonitoringStage_('NET', 5, '', values[20], values[20]),
     ];
     draftDue = '';
     spkEnd = '';
@@ -80,11 +78,9 @@ function recommendationMonitoringRecord_(values, sheetName, rowNumber) {
     stages = [
       recommendationMonitoringStage_('KOREKTOR 1', 1, values[4], values[5], values[6]),
       recommendationMonitoringStage_('KOREKTOR 2', 2, values[7], values[8], values[9]),
-      recommendationMonitoringStage_('VERIFIKASI DRAFT', 3, values[10], values[11], ''),
-      recommendationMonitoringStage_('CETAK 1', 4, values[14], values[15], values[16]),
-      recommendationMonitoringStage_('VERIFIKASI FINAL', 5, values[17], values[18], ''),
-      recommendationMonitoringStage_('CETAK FINAL', 6, '', values[19], values[20]),
-      recommendationMonitoringStage_('PENGIRIMAN', 7, '', values[21], values[21]),
+      recommendationMonitoringStage_('CETAK 1', 3, '', values[19], values[20]),
+      recommendationMonitoringStage_('KOREKTOR FINAL', 4, values[14], values[15], values[16]),
+      recommendationMonitoringStage_('NET', 5, '', values[21], values[21]),
     ];
     draftDue = '';
     spkEnd = '';
@@ -93,11 +89,17 @@ function recommendationMonitoringRecord_(values, sheetName, rowNumber) {
     stages = [
       recommendationMonitoringStage_('KOREKTOR 1', 1, values[6], values[7], ''),
       recommendationMonitoringStage_('KOREKTOR 2', 2, values[8], values[9], ''),
-      recommendationMonitoringStage_('CETAK 1', 3, values[10], values[11], ''),
-      recommendationMonitoringStage_('CETAK FINAL', 4, '', values[12], ''),
-      recommendationMonitoringStage_('PENGIRIMAN', 5, '', values[13], values[13]),
+      recommendationMonitoringStage_('CETAK 1', 3, '', values[12], ''),
+      recommendationMonitoringStage_('KOREKTOR FINAL', 4, values[10], values[11], ''),
+      recommendationMonitoringStage_('NET', 5, '', values[13], values[13]),
     ];
     sentValue = values[13];
+  } else if (config.layout === 'R5') {
+    stages = [
+      recommendationMonitoringStage_('KOREKTOR 1', 1, values[6], values[7], ''),
+      recommendationMonitoringStage_('KOREKTOR 2', 2, values[8], values[9], ''),
+      recommendationMonitoringStage_('NET', 3, '', values[16], values[16]),
+    ];
   } else if (config.layout === 'PRIVATE') {
     company = adminText_(values[1]);
     kebun = adminText_(values[2]);
@@ -111,13 +113,14 @@ function recommendationMonitoringRecord_(values, sheetName, rowNumber) {
     stages = [
       recommendationMonitoringStage_('KOREKTOR 1', 1, values[7], values[8], ''),
       recommendationMonitoringStage_('KOREKTOR 2', 2, values[9], values[10], ''),
-      recommendationMonitoringStage_('CETAK 1', 3, values[11], values[12], ''),
-      recommendationMonitoringStage_('CETAK FINAL', 4, '', values[13], values[14]),
-      recommendationMonitoringStage_('PENGIRIMAN', 5, '', values[15], values[15]),
+      recommendationMonitoringStage_('CETAK 1', 3, '', values[13], values[14]),
+      recommendationMonitoringStage_('KOREKTOR FINAL', 4, values[11], values[12], ''),
+      recommendationMonitoringStage_('NET', 5, '', values[15], values[15]),
     ];
   }
   if (!company) return null;
   const sourceKey = config.code + '-' + no.replace(/[^A-Za-z0-9]/g, '');
+  const activityId = categorySourceId_('RP', sourceKey);
   const visitDate = recommendationVisitDate_(visitText);
   const firstStageDate = stages.reduce(function (found, stage) { return found || stage.incoming || stage.outgoing; }, '');
   const year = Number(String(visitDate || firstStageDate || Utilities.formatDate(new Date(), APP.TIMEZONE, 'yyyy')).slice(0, 4));
@@ -127,13 +130,14 @@ function recommendationMonitoringRecord_(values, sheetName, rowNumber) {
     const date = stage.outgoing || stage.incoming;
     if (date) latest = { code: stage.code, date: date, person: stage.person };
   });
-  const finalStage = stages.filter(function (stage) { return stage.code === 'CETAK FINAL'; })[0] || {};
+  const lastCorrector = stages.slice().reverse().filter(function (stage) { return Boolean(stage.person); })[0] || null;
+  const finalStage = stages.filter(function (stage) { return stage.code === 'NET'; })[0] || {};
   const firstPrint = stages.filter(function (stage) { return stage.code === 'CETAK 1'; })[0] || {};
   const secondReview = stages.filter(function (stage) { return stage.code === 'KOREKTOR 2'; })[0] || {};
   return {
     sourceKey: sourceKey,
-    activityId: 'RP-MON-' + sourceKey,
-    reportId: 'LAP-RP-MON-' + sourceKey,
+    activityId: activityId,
+    reportId: reportIdForActivity_(activityId),
     company: company,
     kebun: kebun,
     region: config.region,
@@ -145,6 +149,7 @@ function recommendationMonitoringRecord_(values, sheetName, rowNumber) {
     year: year,
     stages: stages,
     latest: latest,
+    lastCorrector: lastCorrector,
     draft: firstStageDate,
     revised: secondReview.outgoing || secondReview.incoming || '',
     printed: firstPrint.outgoing || firstPrint.incoming || '',
@@ -165,8 +170,8 @@ function recommendationMonitoringUniqueRecord_(record, seen, rowNumber) {
   let uniqueKey = baseKey + '-' + locationKey;
   if (seen[uniqueKey]) uniqueKey += '-ROW' + rowNumber;
   record.sourceKey = uniqueKey;
-  record.activityId = 'RP-MON-' + uniqueKey;
-  record.reportId = 'LAP-RP-MON-' + uniqueKey;
+  record.activityId = categorySourceId_('RP', uniqueKey);
+  record.reportId = reportIdForActivity_(record.activityId);
   record.note += ' | NOMOR_SUMBER_GANDA=' + baseKey;
   seen[uniqueKey] = true;
   return record;
@@ -271,7 +276,7 @@ function syncRekomendasiMonitoringNow_(source, options) {
         }
         const activityResult = activitiesTable.upsert(record.activityId, {
           activity_id: record.activityId,
-          display_id: record.sourceKey,
+          display_id: record.activityId,
           company_id: companyId,
           perusahaan: record.company,
           subbagian: 'RPJID',
@@ -305,7 +310,7 @@ function syncRekomendasiMonitoringNow_(source, options) {
           workflow: 'RP',
           tanggal_draft_masuk: record.draft,
           checkpoint_terakhir: record.latest ? record.latest.code : '',
-          korektor_terakhir: record.latest ? record.latest.person : '',
+          korektor_terakhir: record.lastCorrector ? record.lastCorrector.person : '',
           tanggal_checkpoint: record.latest ? record.latest.date : '',
           tanggal_revisi: record.revised,
           tanggal_cetak: record.printed,
@@ -321,7 +326,7 @@ function syncRekomendasiMonitoringNow_(source, options) {
         if (reportResult === 'inserted') insertedReports += 1;
         else updatedReports += 1;
         record.stages.forEach(function (stage) {
-          if (!stage.incoming && !stage.outgoing) return;
+          if (!stage.person && !stage.incoming && !stage.outgoing) return;
           const historyId = record.reportId + '-' + stage.code.replace(/\s+/g, '-');
           historyTable.upsert(historyId, {
             history_id: historyId,
@@ -391,6 +396,6 @@ function syncRekomendasiMonitoringNow_(source, options) {
     legacyReportsArchived: 0,
     errors: errors.slice(0, 20),
     backupId: transaction.backupId,
-    message: records.length + ' kegiatan monitoring Rekomendasi Pemupukan disinkronkan (' + insertedReports + ' laporan baru, ' + updatedReports + ' diperbarui).',
+    message: records.length + ' kegiatan monitoring Rekomendasi Pemupukan disinkronkan (' + insertedReports + ' laporan baru, ' + updatedReports + ' diperbarui, ' + historyRows + ' tahap termasuk nama korektor).',
   });
 }

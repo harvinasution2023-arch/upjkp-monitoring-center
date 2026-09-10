@@ -3,9 +3,9 @@
 
 function reportStageCount(row) {
   const status=String(row.status_hitung||row.checkpoint_terakhir||'').toUpperCase();
-  if (status.includes('NET')||status==='SELESAI') return 7;
+  if (status.includes('NET')||status==='SELESAI') return 6;
   if (status.includes('KOREKTOR 2 CETAK')) return 6;
-  if (status.includes('KOREKTOR 1 CETAK')) return 5;
+  if (status.includes('KOREKTOR 1 CETAK')||status.includes('KOREKTOR FINAL')) return 5;
   if (status.includes('CETAK')||status.includes('DICETAK')) return 4;
   if (status.includes('KOREKTOR 2')) return 3;
   if (status.includes('KOREKTOR')||status.includes('KOREKSI')||status.includes('REVISI')) return 2;

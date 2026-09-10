@@ -47,7 +47,7 @@ const TEMPLATE_DROPDOWNS = Object.freeze({
   status_biaya: ['Biaya', 'Non Biaya'],
   subbagian: ['RPJID', 'BT', 'PLT', 'ADM'],
   kategori: ['RP', 'JID', 'BT', 'TR', 'LN'],
-  workflow: ['RP', 'UMUM'],
+  workflow: ['RP', 'BT', 'UMUM'],
   jenis_analisis: ['DAUN', 'TANAH'],
   jenis_mutasi: ['STOK AWAL', 'MASUK', 'PENGADAAN', 'PENJUALAN', 'KELUAR', 'DISTRIBUSI', 'PEMAKAIAN', 'PENYESUAIAN KELUAR'],
   status: ['AKTIF', 'PROSES', 'PERSIAPAN', 'DIJADWALKAN', 'RENCANA', 'SELESAI', 'DRAFT', 'DRAFT MASUK', 'DIREVISI', 'DIKOREKSI', 'DICETAK', 'KOREKTOR 1', 'KOREKTOR 2', 'KOREKTOR 1 CETAK', 'KOREKTOR 2 CETAK', 'NET / RP27', 'VALID', 'TIDAK AKTIF'],
