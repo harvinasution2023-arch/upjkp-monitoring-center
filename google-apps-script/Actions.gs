@@ -136,6 +136,65 @@ function updateActivityCompletion(payload) {
   return success_({ activityId: summary.activityId, correspondenceRowsUpdated: summary.correspondenceRowsUpdated, updatedFields: summary.updatedFields, backupId: transaction.backupId });
 }
 
+const TRAINING_ACTION_TEXT_FIELDS_ = ['perusahaan', 'nama_kegiatan', 'lokasi', 'pic', 'status', 'catatan'];
+const TRAINING_ACTION_DATE_FIELDS_ = ['tanggal_mulai', 'tanggal_selesai'];
+
+function trainingCompleteness_(training) {
+  const checks = [
+    ['perusahaan', training.perusahaan, 'Perusahaan'],
+    ['nama_kegiatan', training.nama_kegiatan, 'Nama kegiatan'],
+    ['lokasi', training.lokasi, 'Lokasi'],
+    ['tanggal_mulai', training.tanggal_mulai, 'Tanggal mulai'],
+    ['tanggal_selesai', training.tanggal_selesai, 'Tanggal selesai'],
+    ['jumlah_peserta', training.jumlah_peserta, 'Jumlah peserta'],
+    ['pic', training.pic, 'PIC'],
+    ['status', training.status, 'Status'],
+  ];
+  const missing = checks.filter(function (item) { return !actionText_(item[1]); }).map(function (item) { return item[2]; });
+  return {
+    missing_fields: missing,
+    missing_count: missing.length,
+    completeness_percent: Math.round((checks.length - missing.length) / checks.length * 100),
+    completeness_label: missing.length ? 'Belum lengkap' : 'Lengkap',
+  };
+}
+
+function getTrainingActionData(trainingId) {
+  assertConfigured_();
+  const id = actionText_(trainingId);
+  if (!id) throw new Error('ID pelatihan wajib diisi.');
+  const training = getRows_('KEGIATAN_PELATIHAN', false).find(function (row) { return String(row.training_id) === id; });
+  if (!training) throw new Error('Kegiatan pelatihan tidak ditemukan atau sudah diarsipkan.');
+  return success_({ training: training, completeness: trainingCompleteness_(training) });
+}
+
+function updateTrainingCompletion(payload) {
+  payload = payload || {};
+  const trainingId = actionText_(payload.training_id);
+  if (!trainingId) throw new Error('ID pelatihan wajib diisi.');
+  let summary = null;
+  const transaction = withWriteTransaction_({
+    actor: currentUser_(), action: 'complete_training', tableName: 'KEGIATAN_PELATIHAN', recordId: trainingId,
+    reason: 'Melengkapi data kegiatan pelatihan melalui menu tindakan',
+  }, function (spreadsheet) {
+    const sheet = spreadsheet.getSheetByName('KEGIATAN_PELATIHAN');
+    const rowNumber = findRow_(sheet, 'training_id', trainingId);
+    if (!rowNumber) throw new Error('Kegiatan pelatihan tidak ditemukan atau sudah diarsipkan.');
+    const headers = getHeaders_(sheet), patch = {};
+    TRAINING_ACTION_TEXT_FIELDS_.forEach(function (field) { if (actionHas_(payload, field)) patch[field] = actionText_(payload[field]); });
+    TRAINING_ACTION_DATE_FIELDS_.forEach(function (field) { if (actionHas_(payload, field)) patch[field] = dateIso_(payload[field]); });
+    if (actionHas_(payload, 'jumlah_peserta')) patch.jumlah_peserta = Math.max(0, Number(payload.jumlah_peserta || 0));
+    patch.updated_at = nowIso_();
+    Object.keys(patch).forEach(function (field) {
+      const column = headers.indexOf(field);
+      if (column >= 0) sheet.getRange(rowNumber, column + 1).setValue(patch[field]);
+    });
+    summary = { trainingId: trainingId, updatedFields: Object.keys(patch).length };
+    return summary;
+  });
+  return success_({ trainingId: summary.trainingId, updatedFields: summary.updatedFields, backupId: transaction.backupId });
+}
+
 function getReportActionData(reportId) {
   assertConfigured_();
   const id = actionText_(reportId);
@@ -180,9 +239,19 @@ function updateReportAction(payload) {
       const historyTable = recommendationMemoryTable_(historySheet, 'history_id');
       const orderMap = { DRAFT: 1, 'KOREKTOR 1': 2, 'KOREKTOR 2': 3, 'CETAK 1': 4, 'KOREKTOR FINAL': 5, 'CETAK FINAL': 6, PENGIRIMAN: 7, NET: 7 };
       const historyId = reportId + '-' + idSafeKey_(checkpoint);
-      const current = historyTable.get(historyId) || {};
-      historyTable.upsert(historyId, {
-        history_id: historyId,
+      const existing = historyTable.get(historyId) || historyTable.rows.map(function (values) {
+        const row = {};
+        historyTable.headers.forEach(function (header, index) { row[header] = values[index]; });
+        return row;
+      }).filter(function (row) {
+        return String(row.report_id) === reportId && String(row.checkpoint || '').toUpperCase() === checkpoint;
+      }).sort(function (left, right) {
+        return String(right.updated_at || right.created_at || '').localeCompare(String(left.updated_at || left.created_at || ''));
+      })[0] || null;
+      const current = existing || {};
+      const targetHistoryId = current.history_id || historyId;
+      historyTable.upsert(targetHistoryId, {
+        history_id: targetHistoryId,
         report_id: reportId,
         checkpoint: checkpoint,
         urutan: orderMap[checkpoint] || Number(current.urutan || 0) || 1,

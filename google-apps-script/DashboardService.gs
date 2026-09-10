@@ -307,6 +307,7 @@ function getModuleData(moduleName, options) {
       return Object.assign({}, row, activityCompleteness_(row, lettersByActivity, reportsByActivity[String(row.activity_id)] || null));
     });
   }
+  if (moduleName === 'training') rows = rows.map(function (row) { return Object.assign({}, row, trainingCompleteness_(row)); });
   if (moduleName === 'reports') {
     const activityMap = {};
     const lettersByActivity = correspondenceByActivity_();

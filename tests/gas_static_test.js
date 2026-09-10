@@ -104,7 +104,7 @@ for (const token of ['Korektor terpantau', 'Korektor Terakhir', 'Riwayat Korekto
 }
 
 const actions = fs.readFileSync(path.join(root, 'Actions.gs'), 'utf8');
-for (const token of ['getActivityActionData', 'updateActivityCompletion', 'getReportActionData', 'updateReportAction', 'complete_activity', 'update_report_action', 'link_net', 'HISTORI_LAPORAN']) {
+for (const token of ['getActivityActionData', 'updateActivityCompletion', 'getTrainingActionData', 'updateTrainingCompletion', 'getReportActionData', 'updateReportAction', 'complete_activity', 'complete_training', 'update_report_action', 'link_net', 'HISTORI_LAPORAN']) {
   if (!actions.includes(token)) throw new Error(`Menu tindakan belum lengkap: ${token}`);
 }
 const dashboardService = fs.readFileSync(path.join(root, 'DashboardService.gs'), 'utf8');
@@ -114,6 +114,8 @@ for (const token of ['getAdministrativeMonitoring', 'isAdministrativeOperational
 }
 if (!dashboardService.includes('activityCompleteness_(row, lettersByActivity')) throw new Error('Indikator kelengkapan kegiatan belum terhubung');
 if (!dashboardService.includes('activityCompleteness_(activity, correspondenceByActivity, report.report_id')) throw new Error('Indikator kelengkapan Administrasi belum terhubung');
+if (!dashboardService.includes('trainingCompleteness_(row)')) throw new Error('Indikator kelengkapan pelatihan belum terhubung');
+if (!modules.includes('trainingActionMenu')) throw new Error('Menu tindakan pelatihan belum ditemukan');
 if (vm.runInContext("correspondenceSlot_({ jenis_surat: 'SURAT TUGAS' })", serverContext) !== 'assignment') throw new Error('Surat tugas tidak terbaca sebagai korespondensi laporan');
 if (vm.runInContext("correspondenceSlot_({ jenis_surat: 'SURAT KUNJUNGAN' })", serverContext) !== 'visit') throw new Error('Surat kunjungan tidak terbaca sebagai korespondensi laporan');
 serverContext.adminTrOperationalFixture = { subbagian: 'PLT', kategori: 'TR' };

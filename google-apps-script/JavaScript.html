@@ -11,6 +11,8 @@ const sidebar=document.querySelector('#sidebar');
 const sidebarBackdrop=document.querySelector('#sidebar-backdrop');
 const activityCompletionDialog=document.querySelector('#activity-completion-dialog');
 const activityCompletionForm=document.querySelector('#activity-completion-form');
+const trainingCompletionDialog=document.querySelector('#training-completion-dialog');
+const trainingCompletionForm=document.querySelector('#training-completion-form');
 const reportActionDialog=document.querySelector('#report-action-dialog');
 const reportActionForm=document.querySelector('#report-action-form');
 
@@ -205,6 +207,13 @@ async function openActivityCompletion(activityId) {
   activityCompletionDialog.showModal();
 }
 
+async function openTrainingCompletion(trainingId) {
+  const data=await callServer('getTrainingActionData',trainingId),training=data.training||{},missing=data.completeness?.missing_fields||[];
+  ['training_id','perusahaan','nama_kegiatan','lokasi','jumlah_peserta','tanggal_mulai','tanggal_selesai','pic','status','catatan'].forEach(name=>setActionField(trainingCompletionForm,name,training[name]));
+  document.querySelector('[data-role="training-action-summary"]').textContent=missing.length?`Masih kosong: ${missing.join(', ')}`:'Data pelatihan sudah lengkap. Periksa kembali sebelum menyimpan.';
+  trainingCompletionDialog.showModal();
+}
+
 async function openReportAction(reportId,mode='general') {
   const data=await callServer('getReportActionData',reportId),report=data.report||{},histories=data.histories||[],checkpoint=String(report.checkpoint_terakhir||'').toUpperCase(),currentHistory=histories.find(item=>String(item.checkpoint||'').toUpperCase()===checkpoint)||histories.filter(item=>String(item.checkpoint||'').toUpperCase().includes('KOREKTOR')).sort((left,right)=>Number(right.urutan||0)-Number(left.urutan||0))[0]||{};
   ['report_id','checkpoint_terakhir','korektor_terakhir','tanggal_checkpoint','tanggal_revisi','tanggal_cetak','tanggal_kirim','tanggal_net','nama_file_draft','link_draft','file_net','rp27','link_net','pic','catatan'].forEach(name=>setActionField(reportActionForm,name,report[name]));
@@ -248,6 +257,7 @@ document.addEventListener('click',async event=>{
       state.query=document.querySelector('[data-role="query"]')?.value.trim()||'';await render();
     } else if (action==='notifications') await notifications();
     else if (action==='activity-complete') await openActivityCompletion(button.dataset.id);
+    else if (action==='training-complete') await openTrainingCompletion(button.dataset.id);
     else if (action==='report-action') await openReportAction(button.dataset.id);
     else if (action==='report-corrector') await openReportAction(button.dataset.id,'corrector');
     else if (action==='close-drawer') closeDrawer();
@@ -295,6 +305,14 @@ activityCompletionForm.addEventListener('submit',async event=>{
   event.preventDefault();
   const submit=activityCompletionForm.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='Menyimpan...';
   try {const result=await callServer('updateActivityCompletion',Object.fromEntries(new FormData(activityCompletionForm).entries()));activityCompletionDialog.close();toast(`Data kegiatan ${result.activityId} berhasil diperbarui.`);await refresh()}
+  catch(error){toast(error.message,'error')}
+  finally{submit.disabled=false;submit.textContent='Simpan kelengkapan'}
+});
+
+trainingCompletionForm.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const submit=trainingCompletionForm.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='Menyimpan...';
+  try {const result=await callServer('updateTrainingCompletion',Object.fromEntries(new FormData(trainingCompletionForm).entries()));trainingCompletionDialog.close();toast(`Pelatihan ${result.trainingId} berhasil diperbarui.`);await refresh()}
   catch(error){toast(error.message,'error')}
   finally{submit.disabled=false;submit.textContent='Simpan kelengkapan'}
 });

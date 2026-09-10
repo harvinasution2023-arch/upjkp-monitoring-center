@@ -150,6 +150,24 @@
       <div class="modal-actions"><button class="button secondary" value="cancel">Batal</button><button class="button primary" type="submit" value="default">Simpan kegiatan</button></div>
     </form>
   </dialog>
+  <dialog id="training-completion-dialog">
+    <form id="training-completion-form" method="dialog">
+      <header class="modal-head"><div><span class="section-kicker">TINDAKAN PELATIHAN</span><h2>Lengkapi kegiatan pelatihan</h2><p data-role="training-action-summary">Perbarui jadwal, peserta, PIC, dan status pelatihan.</p></div><button class="top-icon" value="cancel" aria-label="Tutup"><svg><use href="#i-close"/></svg></button></header>
+      <div class="formgrid">
+        <label>ID pelatihan<input name="training_id" readonly></label>
+        <label>Perusahaan<input name="perusahaan" placeholder="Nama perusahaan"></label>
+        <label class="wide">Nama kegiatan<input name="nama_kegiatan" placeholder="Nama kegiatan pelatihan"></label>
+        <label>Lokasi<input name="lokasi" placeholder="Lokasi pelatihan"></label>
+        <label>Jumlah peserta<input name="jumlah_peserta" type="number" min="0" step="1"></label>
+        <label>Tanggal mulai<input name="tanggal_mulai" type="date"></label>
+        <label>Tanggal selesai<input name="tanggal_selesai" type="date"></label>
+        <label>PIC<input name="pic" placeholder="Nama PIC"></label>
+        <label>Status<select name="status"><option value="">Pilih status</option><option>DRAFT</option><option>TERJADWAL</option><option>PROSES</option><option>SELESAI</option></select></label>
+        <label class="wide">Catatan<textarea name="catatan" rows="3" placeholder="Catatan pelatihan"></textarea></label>
+      </div>
+      <div class="modal-actions"><button class="button secondary" value="cancel">Batal</button><button class="button primary" type="submit" value="default">Simpan kelengkapan</button></div>
+    </form>
+  </dialog>
   <dialog id="activity-completion-dialog">
     <form id="activity-completion-form" method="dialog">
       <header class="modal-head"><div><span class="section-kicker">TINDAKAN KEGIATAN</span><h2 data-role="activity-action-title">Lengkapi data kegiatan</h2><p data-role="activity-action-summary">Perbarui data kegiatan dan surat yang masih kosong.</p></div><button class="top-icon" value="cancel" aria-label="Tutup"><svg><use href="#i-close"/></svg></button></header>

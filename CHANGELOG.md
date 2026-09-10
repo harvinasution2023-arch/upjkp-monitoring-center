@@ -5,7 +5,7 @@
 - Daftar kegiatan dan Administrasi menampilkan indikator kelengkapan data serta menu Tindakan untuk melengkapi data kegiatan dan surat terkait.
 - Monitoring Laporan RP, BT, dan Pelatihan menambahkan menu Tindakan untuk memperbarui checkpoint/korektor, dokumen, dan catatan laporan.
 - Monitoring laporan menambahkan kolom Link Laporan NET yang membuka link Drive/berkas NET jika tersedia.
-- Deployment produksi diperbarui ke **@76**.
+- Deployment produksi diperbarui ke **@78**.
 
 ## 2026-09-10 — v2.6.8
 
