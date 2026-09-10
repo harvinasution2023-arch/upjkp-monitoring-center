@@ -87,7 +87,7 @@
 
 ## Checkpoint untuk dilanjutkan
 
-- Checkpoint aktif: source sudah tersimpan pada commit `ec1920f` dan `origin/main`; deployment produksi menggunakan URL yang sama pada **@78 / Apps Script version 77**. Dashboard terakhir dibuka melalui Chrome Profile 2 pada `#/dashboard`.
+- Checkpoint aktif: source dan catatan progres tersimpan pada commit `a3070b1` di `origin/main` (fitur source dirilis pada `ec1920f`); deployment produksi menggunakan URL yang sama pada **@78 / Apps Script version 77**. Dashboard terakhir dibuka melalui Chrome Profile 2 pada `#/dashboard`.
 - Verifikasi terakhir: `node .\tests\gas_static_test.js` lulus dan `python -m unittest discover -s .\tests -p "test_*.py"` lulus **5 dari 5 test**.
 - Fitur v2.7.0 yang siap digunakan: indikator kelengkapan, menu Tindakan kegiatan/surat, menu Lengkapi laporan, menu Atur korektor, histori korektor tanpa duplikasi, dan kolom Link Laporan NET.
 - Checkpoint terbaru disimpan pada **10 September 2026** setelah deployment **@78 / v2.7.0** untuk menu Tindakan kelengkapan kegiatan, pembaruan korektor/checkpoint laporan, dan Link Laporan NET.
