@@ -9,6 +9,10 @@ const drawer=document.querySelector('#notification-drawer');
 const backdrop=document.querySelector('#drawer-backdrop');
 const sidebar=document.querySelector('#sidebar');
 const sidebarBackdrop=document.querySelector('#sidebar-backdrop');
+const activityCompletionDialog=document.querySelector('#activity-completion-dialog');
+const activityCompletionForm=document.querySelector('#activity-completion-form');
+const reportActionDialog=document.querySelector('#report-action-dialog');
+const reportActionForm=document.querySelector('#report-action-form');
 
 const unitMeta={
   RPJID:{label:'Rekomendasi Pemupukan & Jasa Informasi Digital',short:'Rekomendasi & JID',cls:'rpjid',view:'rpjid',icon:'flask'},
@@ -168,6 +172,51 @@ function navigate(view,{keepFilter=false}={}) {
 
 function closeDrawer(){drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');backdrop.classList.add('hidden')}
 
+function setActionField(formElement,name,value) {
+  const field=formElement?.elements?.[name];
+  if (field) field.value=value===null||value===undefined?'':String(value).slice(0,10)==='1899-12-30'?'':value;
+}
+
+function actionLetterValue(letters,slot,field,fallback='') {
+  return (letters&&letters[slot]&&letters[slot][field])||fallback||'';
+}
+
+async function openActivityCompletion(activityId) {
+  const data=await callServer('getActivityActionData',activityId),activity=data.activity||{},letters=data.letters||{},missing=data.completeness?.missing_fields||[];
+  setActionField(activityCompletionForm,'activity_id',activity.activity_id);
+  ['instansi','jenis_kegiatan','regional','kebun_lokasi','tahun','pic','status_biaya','no_spk','tanggal_spk','tanggal_mulai','tanggal_selesai','nilai_kontrak','hpp','catatan'].forEach(name=>setActionField(activityCompletionForm,name,activity[name]));
+  setActionField(activityCompletionForm,'no_surat_masuk',actionLetterValue(letters,'incoming','nomor_surat',activity.no_surat_masuk));
+  setActionField(activityCompletionForm,'tanggal_surat_masuk',actionLetterValue(letters,'incoming','tanggal',activity.tanggal_surat_masuk));
+  setActionField(activityCompletionForm,'perihal_surat_masuk',actionLetterValue(letters,'incoming','perihal'));
+  setActionField(activityCompletionForm,'no_surat_keluar',actionLetterValue(letters,'outgoing','nomor_surat'));
+  setActionField(activityCompletionForm,'tanggal_surat_keluar',actionLetterValue(letters,'outgoing','tanggal'));
+  setActionField(activityCompletionForm,'perihal_surat_keluar',actionLetterValue(letters,'outgoing','perihal'));
+  setActionField(activityCompletionForm,'no_surat_kunjungan',actionLetterValue(letters,'visit','nomor_surat'));
+  setActionField(activityCompletionForm,'tanggal_surat_kunjungan',actionLetterValue(letters,'visit','tanggal'));
+  setActionField(activityCompletionForm,'perihal_surat_kunjungan',actionLetterValue(letters,'visit','perihal'));
+  setActionField(activityCompletionForm,'no_surat_tugas',actionLetterValue(letters,'assignment','nomor_surat',activity.no_spk));
+  setActionField(activityCompletionForm,'tanggal_surat_tugas',actionLetterValue(letters,'assignment','tanggal',activity.tanggal_spk));
+  setActionField(activityCompletionForm,'perihal_surat_tugas',actionLetterValue(letters,'assignment','perihal'));
+  setActionField(activityCompletionForm,'no_surat_pengiriman_laporan',actionLetterValue(letters,'report','nomor_surat'));
+  setActionField(activityCompletionForm,'tanggal_pengiriman_laporan',actionLetterValue(letters,'report','tanggal'));
+  setActionField(activityCompletionForm,'perihal_pengiriman_laporan',actionLetterValue(letters,'report','perihal'));
+  document.querySelector('[data-role="activity-action-title"]').textContent=`Lengkapi data ${activity.display_id||activity.activity_id||''}`.trim();
+  document.querySelector('[data-role="activity-action-summary"]').textContent=missing.length?`Masih kosong: ${missing.join(', ')}`:'Data utama kegiatan sudah lengkap. Periksa kembali surat dan catatan sebelum menyimpan.';
+  activityCompletionDialog.showModal();
+}
+
+async function openReportAction(reportId,mode='general') {
+  const data=await callServer('getReportActionData',reportId),report=data.report||{},histories=data.histories||[],checkpoint=String(report.checkpoint_terakhir||'').toUpperCase(),currentHistory=histories.find(item=>String(item.checkpoint||'').toUpperCase()===checkpoint)||histories.filter(item=>String(item.checkpoint||'').toUpperCase().includes('KOREKTOR')).sort((left,right)=>Number(right.urutan||0)-Number(left.urutan||0))[0]||{};
+  ['report_id','checkpoint_terakhir','korektor_terakhir','tanggal_checkpoint','tanggal_revisi','tanggal_cetak','tanggal_kirim','tanggal_net','nama_file_draft','link_draft','file_net','rp27','link_net','pic','catatan'].forEach(name=>setActionField(reportActionForm,name,report[name]));
+  setActionField(reportActionForm,'report_id',report.report_id||reportId);
+  setActionField(reportActionForm,'korektor_terakhir',report.korektor_terakhir||currentHistory.korektor);
+  setActionField(reportActionForm,'korektor_tanggal_masuk',currentHistory.tanggal_masuk||report.tanggal_checkpoint);
+  setActionField(reportActionForm,'korektor_tanggal_selesai',currentHistory.tanggal_selesai||report.tanggal_checkpoint);
+  document.querySelector('[data-role="report-action-title"]').textContent=mode==='corrector'?'Atur korektor laporan':'Lengkapi laporan';
+  document.querySelector('[data-role="report-action-summary"]').textContent=mode==='corrector'?'Perbarui tahap koreksi dan nama korektor pada laporan ini.':'Perbarui checkpoint, dokumen, link NET, dan catatan laporan ini.';
+  reportActionDialog.showModal();
+}
+
 async function notifications() {
   const data=await getModule('notifications');
   const active=data.items.filter(row=>!row.resolved_at).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
@@ -198,6 +247,9 @@ document.addEventListener('click',async event=>{
     } else if (action==='search') {
       state.query=document.querySelector('[data-role="query"]')?.value.trim()||'';await render();
     } else if (action==='notifications') await notifications();
+    else if (action==='activity-complete') await openActivityCompletion(button.dataset.id);
+    else if (action==='report-action') await openReportAction(button.dataset.id);
+    else if (action==='report-corrector') await openReportAction(button.dataset.id,'corrector');
     else if (action==='close-drawer') closeDrawer();
     else if (action==='toggle-sidebar') toggleSidebar();
     else if (action==='help') toast('Gunakan menu kiri untuk membuka modul. Klik KPI, alert, atau baris laporan untuk melihat data terkait.');
@@ -237,6 +289,22 @@ form.addEventListener('submit',async event=>{
   try {const payload=Object.fromEntries(new FormData(form).entries());const result=await callServer('createActivity',payload);dialog.close();toast(`${result.activity.display_id} berhasil disimpan.`);await refresh()}
   catch(error){toast(error.message,'error')}
   finally{submit.disabled=false;submit.textContent='Simpan Kegiatan'}
+ });
+
+activityCompletionForm.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const submit=activityCompletionForm.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='Menyimpan...';
+  try {const result=await callServer('updateActivityCompletion',Object.fromEntries(new FormData(activityCompletionForm).entries()));activityCompletionDialog.close();toast(`Data kegiatan ${result.activityId} berhasil diperbarui.`);await refresh()}
+  catch(error){toast(error.message,'error')}
+  finally{submit.disabled=false;submit.textContent='Simpan kelengkapan'}
+});
+
+reportActionForm.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const submit=reportActionForm.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='Menyimpan...';
+  try {const result=await callServer('updateReportAction',Object.fromEntries(new FormData(reportActionForm).entries()));reportActionDialog.close();toast(`Laporan ${result.reportId} berhasil diperbarui.`);await refresh()}
+  catch(error){toast(error.message,'error')}
+  finally{submit.disabled=false;submit.textContent='Simpan tindakan'}
 });
 
 window.addEventListener('hashchange',()=>{

@@ -6,6 +6,22 @@ function activityTable(items) {
   return `<div class="tablewrap"><table><thead><tr><th>ID</th><th>Perusahaan / Kegiatan</th><th>Lokasi</th><th>Regional</th><th>Subbagian</th><th>PIC</th><th class="number">Nilai</th><th>Status</th></tr></thead><tbody>${items.map(row=>`<tr><td class="mono">${esc(row.display_id||row.activity_id)}</td><td><strong>${esc(row.perusahaan)}</strong><br><span class="muted">${esc(row.jenis_kegiatan||'—')}</span></td><td>${esc(row.kebun_lokasi||'—')}</td><td>${esc(row.regional||'—')}</td><td>${statusBadge(unitMeta[row.subbagian]?.short||row.subbagian)}</td><td>${esc(row.pic||'—')}</td><td class="number">${compact(row.nilai_kontrak)}</td><td>${statusBadge(row.status)}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
+function completenessCell(row) {
+  const missing=Array.isArray(row.missing_fields)?row.missing_fields:[],count=Number(row.missing_count||missing.length||0);
+  if (!count) return '<span class="completion-cell"><span class="badge success">Lengkap</span></span>';
+  const preview=missing.slice(0,3).join(', ')+(missing.length>3?'...':'');
+  return '<span class="completion-cell"><span class="badge warning">'+count+' belum diisi</span><small title="'+esc(missing.join(', '))+'">'+esc(preview)+'</small></span>';
+}
+
+function activityActionMenu(row) {
+  return '<details class="action-menu"><summary class="button secondary small" onclick="event.stopPropagation()">Tindakan</summary><div class="action-menu-list"><button type="button" data-action="activity-complete" data-id="'+esc(row.activity_id)+'">Lengkapi data</button></div></details>';
+}
+
+function activityTable(items) {
+  if (!items.length) return emptyState('Belum ada kegiatan','Tambahkan kegiatan pertama melalui formulir administrasi.','<button class="button primary" data-action="create">Catat Kegiatan</button>');
+  return '<div class="tablewrap"><table><thead><tr><th>ID</th><th>Perusahaan / Kegiatan</th><th>Lokasi</th><th>Regional</th><th>Subbagian</th><th>PIC</th><th class="number">Nilai</th><th>Status</th><th>Kelengkapan</th><th>Tindakan</th></tr></thead><tbody>'+items.map(function(row){return '<tr><td class="mono">'+esc(row.display_id||row.activity_id)+'</td><td><strong>'+esc(row.perusahaan||'-')+'</strong><br><span class="muted">'+esc(row.jenis_kegiatan||'-')+'</span></td><td>'+esc(row.kebun_lokasi||'-')+'</td><td>'+esc(row.regional||'-')+'</td><td>'+statusBadge(unitMeta[row.subbagian]?.short||row.subbagian)+'</td><td>'+esc(row.pic||'-')+'</td><td class="number">'+compact(row.nilai_kontrak)+'</td><td>'+statusBadge(row.status)+'</td><td>'+completenessCell(row)+'</td><td>'+activityActionMenu(row)+'</td></tr>';}).join('')+'</tbody></table></div>';
+}
+
 async function renderActivities(filters={}) {
   const data=await getModule('activities',filters),title=titles[state.view]||titles.activities;
   content.innerHTML=`${pageHead(title[0],title[1],'<button class="button secondary" data-action="database">Buka Database</button><button class="button primary" data-action="create">+ Catat Kegiatan</button>')}${toolbar()}<section class="panel">${sectionHead(`${angka.format(data.total)} kegiatan`,'Record aktif dari Google Sheet master')}${activityTable(data.items)}</section>`;
@@ -119,6 +135,12 @@ function administrativeTable(items) {
   return `<div class="tablewrap"><table><thead><tr><th>ID / Unit</th><th>Perusahaan / Kebun</th><th>Perihal</th><th>Kegiatan</th><th>Leader</th><th>Petugas</th><th>Surat Masuk / Tanggal</th><th>Surat Keluar / Tanggal</th><th>Monitoring Laporan</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
+function administrativeTable(items) {
+  if (!items.length) return '<div class="tablewrap"><table><tbody><tr><td class="row-empty">Belum ada data administrasi yang sesuai.</td></tr></tbody></table></div>';
+  const rows=items.map(function(row){const clickable=row.report_id?' class="clickable" data-action="report-detail" data-id="'+esc(row.report_id)+'"':'';return '<tr'+clickable+'><td><span class="mono">'+esc(row.display_id||row.activity_id)+'</span><br>'+statusBadge(unitMeta[row.subbagian]?.short||row.subbagian)+'</td><td><strong>'+esc(row.perusahaan||'-')+'</strong><br><span class="muted">'+esc(row.kebun||'Belum ditentukan')+'</span></td><td>'+esc(row.perihal||'-')+'</td><td>'+esc(row.kegiatan||'-')+'</td><td>'+esc(row.leader||'-')+'</td><td>'+esc(row.petugas||'-')+'</td><td>'+administrativeLetterCell(row.no_surat_masuk,row.tanggal_surat_masuk)+'</td><td>'+administrativeLetterCell(row.no_surat_keluar,row.tanggal_surat_keluar)+'</td><td>'+statusBadge(row.status_laporan||'BELUM TERHUBUNG')+'<br><span class="muted">'+esc(row.checkpoint_laporan||'')+'</span></td><td>'+completenessCell(row)+'</td><td>'+activityActionMenu(row)+'</td></tr>';}).join('');
+  return '<div class="tablewrap"><table><thead><tr><th>ID / Unit</th><th>Perusahaan / Kebun</th><th>Perihal</th><th>Kegiatan</th><th>Leader</th><th>Petugas</th><th>Surat Masuk / Tanggal</th><th>Surat Keluar / Tanggal</th><th>Monitoring Laporan</th><th>Kelengkapan</th><th>Tindakan</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
 async function renderAdministrativeUnit(subbagian,kategori,key) {
   const data=await callServer('getAdministrativeMonitoring',{subbagian,kategori,tahun:state.year||'',query:state.query,pageSize:1000});
   state.currentReports=data.items.filter(row=>row.report_id);
@@ -159,6 +181,33 @@ async function renderReports(workflow,subbagian) {
   const rows=items.length?items.map(row=>`<tr class="clickable" data-action="report-detail" data-id="${esc(row.report_id)}"><td class="mono">${esc(reportDisplayId(row))}</td><td><strong>${esc(row.perusahaan||'—')}</strong></td><td>${esc(row.kebun||'—')}</td><td>${esc(row.nama_kegiatan||'—')}</td><td>${administrativeLetterCell(row.no_surat_masuk,row.tanggal_surat_masuk)}</td><td>${administrativeLetterCell(row.no_surat_keluar,row.tanggal_surat_keluar)}</td><td>${visitTaskLetterCell(row)}</td><td>${dateText(row.tanggal_draft_masuk)}</td><td>${dateText(row.deadline)}</td><td class="mono">${angka.format(row.hari_berjalan||0)}</td><td>${miniCheckpoints(reportStageCount(row))}</td><td>${esc(row.korektor_terakhir||'—')}</td><td>${statusBadge(row.status_deadline)}</td><td>${esc(row.pic||'—')}</td></tr>`).join(''):`<tr><td colspan="14" class="row-empty">Tidak ada laporan untuk filter ini.</td></tr>`;
   const filterOptions=['','AKTIF','AMAN','PERHATIAN','SEGERA SELESAIKAN','TERLAMBAT','SELESAI'].map(value=>`<option value="${value}" ${value===state.filterStatus?'selected':''}>${value||'Semua status'}</option>`).join('');
   content.innerHTML=`${pageHead(titles[key][0],titles[key][1],'<button class="button secondary" data-action="run-monitor">Jalankan Reminder</button>')}<section class="summary"><article><small>Total Laporan</small><strong>${data.total}</strong></article><article><small>Aktif</small><strong>${data.total-totals.done}</strong></article><article class="success"><small>Aman</small><strong>${totals.safe}</strong></article><article class="warning"><small>Perhatian / Segera</small><strong>${totals.warning+totals.soon}</strong></article><article class="danger"><small>Terlambat</small><strong>${totals.late}</strong></article><article class="success"><small>NET</small><strong>${totals.done}</strong></article></section><div class="filterbar"><select id="report-status-filter" class="filter-select" aria-label="Filter status">${filterOptions}</select><select class="filter-select" aria-label="Filter tahun"><option>${state.year||'Semua tahun'}</option></select><select class="filter-select" aria-label="Filter regional"><option>Semua regional</option></select><input class="input" data-role="query" value="${esc(state.query)}" placeholder="${queryPlaceholder}"><button class="button secondary" data-action="search">Cari</button><span class="spacer"></span><span class="badge info">SLA 30 HARI</span></div><section class="panel">${sectionHead('Timeline Laporan',`${items.length} dari ${data.total} laporan · klik baris untuk detail`)}<div class="tablewrap"><table><thead><tr><th>${idLabel}</th><th>Perusahaan</th><th>Kebun</th><th>Kegiatan</th><th>Surat Masuk / Tgl</th><th>Surat Keluar / Tgl</th><th>Kunjungan / Tugas</th><th>Draft</th><th>Deadline</th><th>Hari ke-</th><th>Checkpoint</th><th>Korektor Terakhir</th><th>Status</th><th>PIC</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+}
+
+function safeUrl_(value) {
+  const url=String(value||'').trim();
+  return /^https?:\/\//i.test(url)?url:'';
+}
+
+function netLinkCell(row) {
+  const url=safeUrl_(row.link_net)||safeUrl_(row.file_net)||safeUrl_(row.rp27),status=String(row.status_hitung||row.status||'').toUpperCase();
+  if (url) return '<a class="net-link" href="'+esc(url)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">Buka NET</a>';
+  return status.includes('NET')||row.tanggal_net?'<span class="muted">NET tanpa link</span>':'<span class="muted">-</span>';
+}
+
+function reportActionMenu(row) {
+  return '<details class="action-menu"><summary class="button secondary small" onclick="event.stopPropagation()">Tindakan</summary><div class="action-menu-list"><button type="button" data-action="report-action" data-id="'+esc(row.report_id)+'">Lengkapi laporan</button><button type="button" data-action="report-corrector" data-id="'+esc(row.report_id)+'">Atur korektor</button></div></details>';
+}
+
+async function renderReports(workflow,subbagian) {
+  const data=await getModule('reports',{workflow,subbagian}),key=subbagian==='PLT'?'reports-tr':workflow==='RP'?'reports-rp':'reports-bt';
+  state.currentReports=data.items;
+  const items=filterReports(data.items);
+  const totals={done:data.items.filter(function(row){return row.status_deadline==='SELESAI';}).length,late:data.items.filter(function(row){return row.status_deadline==='TERLAMBAT';}).length,warning:data.items.filter(function(row){return row.status_deadline==='PERHATIAN';}).length,soon:data.items.filter(function(row){return row.status_deadline==='SEGERA SELESAIKAN';}).length,safe:data.items.filter(function(row){return row.status_deadline==='AMAN';}).length};
+  const idLabel=workflow==='RP'&&subbagian==='RPJID'?'ID RP':'ID';
+  const queryPlaceholder=workflow==='RP'&&subbagian==='RPJID'?'Cari ID RP, perusahaan, kebun, nomor surat, korektor, atau PIC...':'Cari ID, perusahaan, kebun, nomor surat, korektor, atau PIC...';
+  const rows=items.length?items.map(function(row){return '<tr class="clickable" data-action="report-detail" data-id="'+esc(row.report_id)+'"><td class="mono">'+esc(reportDisplayId(row))+'</td><td><strong>'+esc(row.perusahaan||'-')+'</strong></td><td>'+esc(row.kebun||'-')+'</td><td>'+esc(row.nama_kegiatan||'-')+'</td><td>'+administrativeLetterCell(row.no_surat_masuk,row.tanggal_surat_masuk)+'</td><td>'+administrativeLetterCell(row.no_surat_keluar,row.tanggal_surat_keluar)+'</td><td>'+visitTaskLetterCell(row)+'</td><td>'+dateText(row.tanggal_draft_masuk)+'</td><td>'+dateText(row.deadline)+'</td><td class="mono">'+angka.format(row.hari_berjalan||0)+'</td><td>'+miniCheckpoints(reportStageCount(row))+'</td><td>'+esc(row.korektor_terakhir||'-')+'</td><td>'+statusBadge(row.status_deadline)+'</td><td>'+esc(row.pic||'-')+'</td><td>'+netLinkCell(row)+'</td><td>'+reportActionMenu(row)+'</td></tr>';}).join(''):'<tr><td colspan="16" class="row-empty">Tidak ada laporan untuk filter ini.</td></tr>';
+  const filterOptions=['','AKTIF','AMAN','PERHATIAN','SEGERA SELESAIKAN','TERLAMBAT','SELESAI'].map(function(value){return '<option value="'+value+'" '+(value===state.filterStatus?'selected':'')+'>'+(value||'Semua status')+'</option>';}).join('');
+  content.innerHTML=pageHead(titles[key][0],titles[key][1],'<button class="button secondary" data-action="run-monitor">Jalankan Reminder</button>')+'<section class="summary"><article><small>Total Laporan</small><strong>'+data.total+'</strong></article><article><small>Aktif</small><strong>'+(data.total-totals.done)+'</strong></article><article class="success"><small>Aman</small><strong>'+totals.safe+'</strong></article><article class="warning"><small>Perhatian / Segera</small><strong>'+(totals.warning+totals.soon)+'</strong></article><article class="danger"><small>Terlambat</small><strong>'+totals.late+'</strong></article><article class="success"><small>NET</small><strong>'+totals.done+'</strong></article></section><div class="filterbar"><select id="report-status-filter" class="filter-select" aria-label="Filter status">'+filterOptions+'</select><select class="filter-select" aria-label="Filter tahun"><option>'+esc(state.year||'Semua tahun')+'</option></select><select class="filter-select" aria-label="Filter regional"><option>Semua regional</option></select><input class="input" data-role="query" value="'+esc(state.query)+'" placeholder="'+queryPlaceholder+'"><button class="button secondary" data-action="search">Cari</button><span class="spacer"></span><span class="badge info">SLA 30 HARI</span></div><section class="panel">'+sectionHead('Timeline Laporan',items.length+' dari '+data.total+' laporan - klik baris untuk detail')+'<div class="tablewrap"><table><thead><tr><th>'+idLabel+'</th><th>Perusahaan</th><th>Kebun</th><th>Kegiatan</th><th>Surat Masuk / Tgl</th><th>Surat Keluar / Tgl</th><th>Kunjungan / Tugas</th><th>Draft</th><th>Deadline</th><th>Hari ke-</th><th>Checkpoint</th><th>Korektor Terakhir</th><th>Status</th><th>PIC</th><th>Link Laporan NET</th><th>Tindakan</th></tr></thead><tbody>'+rows+'</tbody></table></div></section>';
 }
 
 async function renderReportDetail(reportId) {

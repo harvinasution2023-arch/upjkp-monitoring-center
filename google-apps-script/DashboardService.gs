@@ -300,6 +300,13 @@ function getModuleData(moduleName, options) {
   const tableName = tableMap[moduleName];
   if (!tableName) throw new Error('Modul tidak dikenal: ' + moduleName);
   let rows = getRows_(tableName, false);
+  if (moduleName === 'activities') {
+    const lettersByActivity = correspondenceByActivity_();
+    const reportsByActivity = activityReportMap_();
+    rows = rows.map(function (row) {
+      return Object.assign({}, row, activityCompleteness_(row, lettersByActivity, reportsByActivity[String(row.activity_id)] || null));
+    });
+  }
   if (moduleName === 'reports') {
     const activityMap = {};
     const lettersByActivity = correspondenceByActivity_();
@@ -396,10 +403,11 @@ function getAdministrativeMonitoring(options) {
   let items = activities.map(function (activity) {
     const activityId = String(activity.activity_id), report = reportsByActivity[activityId] || {};
     const letters = correspondenceByActivity[activityId] || {}, incoming = letters.incoming || {}, outgoing = letters.outgoing || {}, visit = letters.visit || {}, assignment = letters.assignment || {};
+    const completeness = activityCompleteness_(activity, correspondenceByActivity, report.report_id ? report : null);
     const people = peopleByActivity[activityId] || { leader: [], workers: [] };
     const leader = people.leader.join(', ') || activity.pic || '';
     const workers = people.workers.filter(function (name) { return name.toLowerCase().replace(/\s+/g, ' ') !== String(leader).toLowerCase().replace(/\s+/g, ' '); });
-    return Object.assign({}, report, {
+    return Object.assign({}, report, completeness, {
       activity_id: activityId,
       report_id: report.report_id || '',
       display_id: activity.display_id || activityId,

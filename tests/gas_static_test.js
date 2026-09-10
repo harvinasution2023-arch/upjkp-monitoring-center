@@ -4,7 +4,7 @@ const vm = require('vm');
 
 const root = path.resolve(__dirname, '..', 'google-apps-script');
 const files = [
-  'Schema.gs', 'Config.gs', 'Repository.gs', 'DashboardService.gs',
+  'Schema.gs', 'Config.gs', 'Repository.gs', 'DashboardService.gs', 'Actions.gs',
   'Automation.gs', 'CentralSync.gs', 'DemoData.gs', 'Code.gs', 'SelfTest.gs', 'TemplateService.gs', 'SourceSync.gs', 'AdminSync.gs', 'RecommendationSync.gs', 'RecommendationMonitoringSync.gs', 'RecommendationBTFormatSync.gs', 'RecommendationWorkbook.gs',
 ];
 const source = files.map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
@@ -99,15 +99,21 @@ if (!modules.includes("key=subbagian==='PLT'?'reports-tr'")) throw new Error('Mo
 for (const token of ['Surat Masuk / Tgl', 'Surat Keluar / Tgl', 'Kunjungan / Tugas', 'visitTaskLetterCell', 'reportDisplayId', 'ID RP']) {
   if (!modules.includes(token)) throw new Error(`Kolom surat monitoring laporan belum lengkap: ${token}`);
 }
-for (const token of ['Korektor terpantau', 'Korektor Terakhir', 'Riwayat Korektor']) {
+for (const token of ['Korektor terpantau', 'Korektor Terakhir', 'Riwayat Korektor', 'Kelengkapan', 'Tindakan', 'Link Laporan NET', 'activityActionMenu', 'reportActionMenu', 'netLinkCell']) {
   if (!modules.includes(token)) throw new Error(`Data korektor tidak tampil pada Dashboard BT: ${token}`);
 }
 
+const actions = fs.readFileSync(path.join(root, 'Actions.gs'), 'utf8');
+for (const token of ['getActivityActionData', 'updateActivityCompletion', 'getReportActionData', 'updateReportAction', 'complete_activity', 'update_report_action', 'link_net', 'HISTORI_LAPORAN']) {
+  if (!actions.includes(token)) throw new Error(`Menu tindakan belum lengkap: ${token}`);
+}
 const dashboardService = fs.readFileSync(path.join(root, 'DashboardService.gs'), 'utf8');
 if (!dashboardService.includes('subbagian: activity.subbagian')) throw new Error('Relasi laporan ke subbagian kegiatan tidak ditemukan');
 for (const token of ['getAdministrativeMonitoring', 'isAdministrativeOperationalActivity_', 'correspondenceByActivity_', 'display_id: displayId', 'activity_display_id: displayId', 'no_surat_keluar', 'tanggal_surat_keluar', 'no_surat_kunjungan', 'no_surat_tugas', 'status_laporan', 'tr: items.filter']) {
   if (!dashboardService.includes(token)) throw new Error(`Relasi Administrasi ke laporan tidak lengkap: ${token}`);
 }
+if (!dashboardService.includes('activityCompleteness_(row, lettersByActivity')) throw new Error('Indikator kelengkapan kegiatan belum terhubung');
+if (!dashboardService.includes('activityCompleteness_(activity, correspondenceByActivity, report.report_id')) throw new Error('Indikator kelengkapan Administrasi belum terhubung');
 if (vm.runInContext("correspondenceSlot_({ jenis_surat: 'SURAT TUGAS' })", serverContext) !== 'assignment') throw new Error('Surat tugas tidak terbaca sebagai korespondensi laporan');
 if (vm.runInContext("correspondenceSlot_({ jenis_surat: 'SURAT KUNJUNGAN' })", serverContext) !== 'visit') throw new Error('Surat kunjungan tidak terbaca sebagai korespondensi laporan');
 serverContext.adminTrOperationalFixture = { subbagian: 'PLT', kategori: 'TR' };

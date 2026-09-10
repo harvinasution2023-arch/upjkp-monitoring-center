@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-10 - v2.7.0
+
+- Daftar kegiatan dan Administrasi menampilkan indikator kelengkapan data serta menu Tindakan untuk melengkapi data kegiatan dan surat terkait.
+- Monitoring Laporan RP, BT, dan Pelatihan menambahkan menu Tindakan untuk memperbarui checkpoint/korektor, dokumen, dan catatan laporan.
+- Monitoring laporan menambahkan kolom Link Laporan NET yang membuka link Drive/berkas NET jika tersedia.
+- Deployment produksi diperbarui ke **@76**.
+
 ## 2026-09-10 — v2.6.8
 
 - Monitoring Laporan RP sekarang menampilkan ID kegiatan RP dari Administrasi RP (`RP-*`) sebagai ID utama pada daftar dan detail laporan.

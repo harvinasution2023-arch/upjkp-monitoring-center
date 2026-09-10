@@ -150,6 +150,69 @@
       <div class="modal-actions"><button class="button secondary" value="cancel">Batal</button><button class="button primary" type="submit" value="default">Simpan kegiatan</button></div>
     </form>
   </dialog>
+  <dialog id="activity-completion-dialog">
+    <form id="activity-completion-form" method="dialog">
+      <header class="modal-head"><div><span class="section-kicker">TINDAKAN KEGIATAN</span><h2 data-role="activity-action-title">Lengkapi data kegiatan</h2><p data-role="activity-action-summary">Perbarui data kegiatan dan surat yang masih kosong.</p></div><button class="top-icon" value="cancel" aria-label="Tutup"><svg><use href="#i-close"/></svg></button></header>
+      <div class="formgrid">
+        <label>ID kegiatan<input name="activity_id" readonly></label>
+        <label>Instansi<input name="instansi" placeholder="Instansi/perusahaan"></label>
+        <label>Jenis kegiatan<input name="jenis_kegiatan" placeholder="Jenis kegiatan"></label>
+        <label>Regional<input name="regional" placeholder="R1, R2, ..."></label>
+        <label>Kebun/lokasi<input name="kebun_lokasi" placeholder="Kebun atau lokasi"></label>
+        <label>Tahun<input name="tahun" type="number" min="2000" max="2100"></label>
+        <label>PIC<input name="pic" placeholder="Nama PIC"></label>
+        <label>Status biaya<select name="status_biaya"><option value="">Pilih status biaya</option><option>Biaya</option><option>Non Biaya</option></select></label>
+        <label>No. SPK<input name="no_spk" placeholder="Nomor SPK"></label>
+        <label>Tanggal SPK<input name="tanggal_spk" type="date"></label>
+        <label>Tanggal mulai<input name="tanggal_mulai" type="date"></label>
+        <label>Tanggal selesai<input name="tanggal_selesai" type="date"></label>
+        <label>Nilai kontrak<input name="nilai_kontrak" inputmode="numeric" placeholder="0"></label>
+        <label>HPP<input name="hpp" inputmode="numeric" placeholder="0"></label>
+        <label>No. surat masuk<input name="no_surat_masuk" placeholder="Nomor surat masuk"></label>
+        <label>Tanggal surat masuk<input name="tanggal_surat_masuk" type="date"></label>
+        <label class="wide">Perihal surat masuk<input name="perihal_surat_masuk" placeholder="Perihal"></label>
+        <label>No. surat balasan/keluar<input name="no_surat_keluar" placeholder="Nomor surat keluar"></label>
+        <label>Tanggal surat balasan/keluar<input name="tanggal_surat_keluar" type="date"></label>
+        <label class="wide">Perihal surat balasan/keluar<input name="perihal_surat_keluar" placeholder="Perihal"></label>
+        <label>No. surat kunjungan<input name="no_surat_kunjungan" placeholder="Nomor surat kunjungan"></label>
+        <label>Tanggal surat kunjungan<input name="tanggal_surat_kunjungan" type="date"></label>
+        <label class="wide">Perihal surat kunjungan<input name="perihal_surat_kunjungan" placeholder="Perihal"></label>
+        <label>No. surat tugas<input name="no_surat_tugas" placeholder="Nomor surat tugas"></label>
+        <label>Tanggal surat tugas<input name="tanggal_surat_tugas" type="date"></label>
+        <label class="wide">Perihal surat tugas<input name="perihal_surat_tugas" placeholder="Perihal"></label>
+        <label>No. pengiriman laporan<input name="no_surat_pengiriman_laporan" placeholder="Nomor surat pengiriman laporan"></label>
+        <label>Tanggal pengiriman laporan<input name="tanggal_pengiriman_laporan" type="date"></label>
+        <label class="wide">Perihal pengiriman laporan<input name="perihal_pengiriman_laporan" placeholder="Perihal"></label>
+        <label class="wide">Catatan<textarea name="catatan" rows="3" placeholder="Catatan tindak lanjut"></textarea></label>
+      </div>
+      <div class="modal-actions"><button class="button secondary" value="cancel">Batal</button><button class="button primary" type="submit" value="default">Simpan kelengkapan</button></div>
+    </form>
+  </dialog>
+  <dialog id="report-action-dialog">
+    <form id="report-action-form" method="dialog">
+      <header class="modal-head"><div><span class="section-kicker">TINDAKAN LAPORAN</span><h2 data-role="report-action-title">Lengkapi laporan</h2><p data-role="report-action-summary">Perbarui checkpoint, korektor, dan dokumen laporan.</p></div><button class="top-icon" value="cancel" aria-label="Tutup"><svg><use href="#i-close"/></svg></button></header>
+      <div class="formgrid">
+        <label>ID laporan<input name="report_id" readonly></label>
+        <label>Checkpoint<select name="checkpoint_terakhir"><option value="">Pilih checkpoint</option><option>DRAFT</option><option>KOREKTOR 1</option><option>KOREKTOR 2</option><option>CETAK 1</option><option>KOREKTOR FINAL</option><option>CETAK FINAL</option><option>PENGIRIMAN</option><option>NET</option></select></label>
+        <label>Korektor terakhir<input name="korektor_terakhir" placeholder="Nama korektor"></label>
+        <label>Tanggal masuk korektor<input name="korektor_tanggal_masuk" type="date"></label>
+        <label>Tanggal selesai korektor<input name="korektor_tanggal_selesai" type="date"></label>
+        <label>Tanggal checkpoint<input name="tanggal_checkpoint" type="date"></label>
+        <label>Tanggal revisi<input name="tanggal_revisi" type="date"></label>
+        <label>Tanggal cetak<input name="tanggal_cetak" type="date"></label>
+        <label>Tanggal kirim<input name="tanggal_kirim" type="date"></label>
+        <label>Tanggal NET<input name="tanggal_net" type="date"></label>
+        <label>Nama file draft<input name="nama_file_draft" placeholder="Nama file draft"></label>
+        <label>Link draft<input name="link_draft" type="url" placeholder="https://drive.google.com/..."></label>
+        <label>File NET<input name="file_net" placeholder="Nama file atau URL NET"></label>
+        <label>RP27<input name="rp27" placeholder="Nama file atau nomor RP27"></label>
+        <label class="wide">Link laporan NET<input name="link_net" type="url" placeholder="https://drive.google.com/..."></label>
+        <label>PIC<input name="pic" placeholder="Nama PIC laporan"></label>
+        <label class="wide">Catatan<textarea name="catatan" rows="3" placeholder="Catatan koreksi atau pengiriman"></textarea></label>
+      </div>
+      <div class="modal-actions"><button class="button secondary" value="cancel">Batal</button><button class="button primary" type="submit" value="default">Simpan tindakan</button></div>
+    </form>
+  </dialog>
   <div id="toasts" aria-live="polite"></div>
   <?!= include('Components'); ?>
   <?!= include('Dashboard'); ?>
