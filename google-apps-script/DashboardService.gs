@@ -308,7 +308,10 @@ function getModuleData(moduleName, options) {
       const activity = activityMap[String(row.activity_id)] || {};
       const letters = lettersByActivity[String(row.activity_id)] || {};
       const incoming = letters.incoming || {}, outgoing = letters.outgoing || {}, visit = letters.visit || {}, assignment = letters.assignment || {};
+      const displayId = activity.display_id || activity.activity_id || row.activity_id || row.report_id || '';
       return Object.assign({}, reportProgress_(row), {
+        display_id: displayId,
+        activity_display_id: displayId,
         subbagian: activity.subbagian || CATEGORY_TO_SUBBAGIAN[activity.kategori] || '',
         kategori: activity.kategori || '',
         no_surat_masuk: incoming.nomor_surat || activity.no_surat_masuk || '',

@@ -96,7 +96,7 @@ if (!modules.includes('renderTeam(subbagian,kategori,key)')) throw new Error('Ti
 if (!modules.includes('unitOperationalCards(code,activities,reports,regional)')) throw new Error('Indikator dashboard subbagian tidak ditemukan');
 if (!modules.includes('TERHUBUNG DASHBOARD UTAMA')) throw new Error('Koneksi dashboard subbagian ke dashboard utama tidak ditemukan');
 if (!modules.includes("key=subbagian==='PLT'?'reports-tr'")) throw new Error('Monitoring laporan Pelatihan tidak memakai judul dan jalur TR');
-for (const token of ['Surat Masuk / Tgl', 'Surat Keluar / Tgl', 'Kunjungan / Tugas', 'visitTaskLetterCell']) {
+for (const token of ['Surat Masuk / Tgl', 'Surat Keluar / Tgl', 'Kunjungan / Tugas', 'visitTaskLetterCell', 'reportDisplayId', 'ID RP']) {
   if (!modules.includes(token)) throw new Error(`Kolom surat monitoring laporan belum lengkap: ${token}`);
 }
 for (const token of ['Korektor terpantau', 'Korektor Terakhir', 'Riwayat Korektor']) {
@@ -105,7 +105,7 @@ for (const token of ['Korektor terpantau', 'Korektor Terakhir', 'Riwayat Korekto
 
 const dashboardService = fs.readFileSync(path.join(root, 'DashboardService.gs'), 'utf8');
 if (!dashboardService.includes('subbagian: activity.subbagian')) throw new Error('Relasi laporan ke subbagian kegiatan tidak ditemukan');
-for (const token of ['getAdministrativeMonitoring', 'isAdministrativeOperationalActivity_', 'correspondenceByActivity_', 'no_surat_keluar', 'tanggal_surat_keluar', 'no_surat_kunjungan', 'no_surat_tugas', 'status_laporan', 'tr: items.filter']) {
+for (const token of ['getAdministrativeMonitoring', 'isAdministrativeOperationalActivity_', 'correspondenceByActivity_', 'display_id: displayId', 'activity_display_id: displayId', 'no_surat_keluar', 'tanggal_surat_keluar', 'no_surat_kunjungan', 'no_surat_tugas', 'status_laporan', 'tr: items.filter']) {
   if (!dashboardService.includes(token)) throw new Error(`Relasi Administrasi ke laporan tidak lengkap: ${token}`);
 }
 if (vm.runInContext("correspondenceSlot_({ jenis_surat: 'SURAT TUGAS' })", serverContext) !== 'assignment') throw new Error('Surat tugas tidak terbaca sebagai korespondensi laporan');

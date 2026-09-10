@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-10 — v2.6.8
+
+- Monitoring Laporan RP sekarang menampilkan ID kegiatan RP dari Administrasi RP (`RP-*`) sebagai ID utama pada daftar dan detail laporan.
+- ID laporan teknis `LAP-*` tetap disimpan sebagai kunci internal agar klik detail dan histori laporan tetap stabil.
+- Deployment produksi diperbarui ke **@74**.
+
 ## 2026-09-10 — v2.6.7
 
 - ID dari database Administrasi menjadi acuan aktif untuk kegiatan RP, BT, dan Pelatihan (`RP-*`, `BT-*`, `TR-*`) saat sinkronisasi menemukan record yang cocok.

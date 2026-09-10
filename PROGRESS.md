@@ -3,10 +3,10 @@
 ## Status terakhir
 
 - Status: **Berjalan**
-- Deployment aktif: **@72**
+- Deployment aktif: **@74**
 - URL aplikasi: `https://script.google.com/macros/s/AKfycbxT0gids44DaWESXxIDj6Mrjc146qhsqoq-4b-605j3bLrSfjyCNLELdbIm_FN0fJP-6A/exec`
 - Branch GitHub: `main`
-- Versi aplikasi: **v2.6.7**
+- Versi aplikasi: **v2.6.8**
 
 ## Sudah selesai
 
@@ -28,6 +28,7 @@
 - Sinkronisasi Administrasi v2.6.7 memakai ID sumber Administrasi sebagai ID aktif kegiatan RP/BT/TR ketika record cocok, lalu mengarsipkan ID kegiatan/laporan/tagihan lama dengan catatan `MIGRATED_TO`.
 - Korespondensi Administrasi sekarang menyimpan `SURAT KUNJUNGAN` dan `SURAT TUGAS` selain Surat Masuk, Surat Balasan/Keluar, dan Pengiriman Laporan.
 - Monitoring Laporan RP, BT, dan Pelatihan menampilkan nomor/tanggal Surat Masuk, nomor/tanggal Surat Balasan/Keluar, nomor Surat Kunjungan, dan nomor Surat Tugas.
+- Monitoring Laporan RP sekarang memakai ID kegiatan RP dari Administrasi RP (`RP-*`) sebagai ID utama pada daftar dan detail; `LAP-*` tetap menjadi kunci internal untuk histori/detail laporan.
 - Sebanyak **26 data penagihan** dari sumber lama tetap dipertahankan.
 - Baris Swasta tanpa nama kebun tetap dimuat dengan lokasi `Belum ditentukan`.
 - Nomor ganda pada Reg II KSO dibuat unik agar tidak saling menimpa.
@@ -77,6 +78,7 @@
 - Standardisasi ID kategori v2.6.5 dijalankan ulang melalui akun pemilik pada **9 September 2026**; deployment final tanpa endpoint maintenance aktif sebagai **@66**.
 - Perbaikan workflow BT v2.6.6 dibuat pada **10 September 2026 pukul 10:36 WIB**; source berhasil `clasp push`, versi Apps Script **67** dibuat, dan deployment produksi aktif sebagai **@68**.
 - Kode v2.6.7 untuk ID Administrasi sebagai acuan RP/BT/TR dan kolom surat monitoring laporan dirilis pada **10 September 2026 pukul 12:02 WIB**; source berhasil `clasp push`, versi Apps Script **71** dibuat, dan deployment produksi aktif sebagai **@72**.
+- Kode v2.6.8 untuk koneksi ID Monitoring Laporan RP ke ID Administrasi RP dirilis pada **10 September 2026 pukul 14:30 WIB**; source berhasil `clasp push`, versi Apps Script **73** dibuat, dan deployment produksi aktif sebagai **@74**.
 - Percobaan `clasp run syncAdministrasi --params "[{}]"` setelah deployment final **@72** pada **10 September 2026 pukul 12:20 WIB** ditolak oleh Execution API (`Unable to run script function`), sehingga migrasi data aktual perlu dipicu dari akun pemilik lewat **Administrasi -> Import / Export -> Sinkronkan Administrasi** atau **Sinkronkan Semua Sumber**.
 - Dashboard produksi dibuka di Chrome Profile 2 pada halaman **Import / Export** agar sinkronisasi Administrasi dapat dijalankan dari UI pemilik.
 - Verifikasi endpoint `?status=rp` dari terminal pada **10 September 2026** dialihkan ke halaman login Google karena akses web app masih `MYSELF`; deployment dikonfirmasi melalui `clasp deployments`.
@@ -84,12 +86,13 @@
 
 ## Checkpoint untuk dilanjutkan
 
-- Checkpoint terbaru disimpan pada **10 September 2026 pukul 12:20 WIB** setelah deployment **@72 / v2.6.7** untuk ID Administrasi sebagai acuan RP/BT/TR dan kolom surat monitoring laporan.
+- Checkpoint terbaru disimpan pada **10 September 2026 pukul 14:30 WIB** setelah deployment **@74 / v2.6.8** untuk koneksi ID Monitoring Laporan RP ke ID Administrasi RP.
+- Checkpoint sebelumnya disimpan pada **10 September 2026 pukul 12:20 WIB** setelah deployment **@72 / v2.6.7** untuk ID Administrasi sebagai acuan RP/BT/TR dan kolom surat monitoring laporan.
 - Checkpoint sebelumnya disimpan pada **10 September 2026 pukul 10:36 WIB** setelah deployment **@68 / v2.6.6** untuk kompatibilitas workflow BT.
 - Checkpoint ini disimpan pada **9 September 2026 pukul 18:45 WIB** setelah dashboard produksi dibuka ulang dari Chrome Profile 2.
 - Checkpoint terbaru dibuat pada **9 September 2026** setelah deployment **@66 / v2.6.5** untuk menyeragamkan ID aktif menjadi `RP-*`, `BT-*`, dan `TR-*`.
-- Kondisi kerja terakhir: dashboard produksi aktif pada v2.6.7; ID kegiatan RP/BT/TR mengikuti sumber Administrasi saat sinkronisasi cocok, dan Monitoring Laporan menampilkan surat masuk/keluar/kunjungan/tugas.
-- Perubahan kode dan dokumentasi v2.6.7 telah dirilis ke Apps Script dan dicatat di GitHub.
+- Kondisi kerja terakhir: dashboard produksi aktif pada v2.6.8; Monitoring Laporan RP menampilkan ID RP dari Administrasi RP, sementara `report_id` teknis tetap dipakai untuk membuka detail dan histori.
+- Perubahan kode dan dokumentasi v2.6.8 telah dirilis ke Apps Script dan dicatat di GitHub.
 - Pusat input/sinkronisasi berada di **Administrasi → Import / Export → Sinkronkan Semua Sumber**.
 - Jangan mengaktifkan kembali sumber lama `1tNZmCWPzHOB69yEwNOJTijwQxCyJkzMnilh79T4FFtc`.
 - Saat melanjutkan, mulai dengan `git status --short --branch`, buka `PROGRESS.md`, lalu verifikasi status `?status=rp` sebelum perubahan baru.
