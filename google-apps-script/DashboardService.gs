@@ -249,6 +249,30 @@ function buildDashboard_(selectedYear) {
   };
 }
 
+function correspondenceSlot_(letter) {
+  const type = String(letter.jenis_surat || '').toUpperCase();
+  if (type.indexOf('TUGAS') >= 0) return 'assignment';
+  if (type.indexOf('KUNJUNGAN') >= 0) return 'visit';
+  if (type.indexOf('MASUK') >= 0) return 'incoming';
+  if (type.indexOf('KELUAR') >= 0 || type.indexOf('BALASAN') >= 0) return 'outgoing';
+  if (type.indexOf('LAPORAN') >= 0) return 'report';
+  return '';
+}
+
+function correspondenceByActivity_() {
+  const byActivity = {};
+  getRows_('KORESPONDENSI', false).forEach(function (letter) {
+    const key = String(letter.activity_id || '');
+    if (!key) return;
+    if (!byActivity[key]) byActivity[key] = { incoming: null, outgoing: null, visit: null, assignment: null, report: null };
+    const slot = correspondenceSlot_(letter);
+    if (!slot) return;
+    const current = byActivity[key][slot];
+    if (!current || String(letter.tanggal || letter.updated_at || '') >= String(current.tanggal || current.updated_at || '')) byActivity[key][slot] = letter;
+  });
+  return byActivity;
+}
+
 function moduleFilterMatches_(row, filters, moduleName) {
   return Object.keys(filters).every(function (key) {
     const expected = String(filters[key] || '').toLowerCase();
@@ -278,12 +302,23 @@ function getModuleData(moduleName, options) {
   let rows = getRows_(tableName, false);
   if (moduleName === 'reports') {
     const activityMap = {};
+    const lettersByActivity = correspondenceByActivity_();
     getRows_('KEGIATAN', false).forEach(function (activity) { activityMap[String(activity.activity_id)] = activity; });
     rows = rows.map(function (row) {
       const activity = activityMap[String(row.activity_id)] || {};
+      const letters = lettersByActivity[String(row.activity_id)] || {};
+      const incoming = letters.incoming || {}, outgoing = letters.outgoing || {}, visit = letters.visit || {}, assignment = letters.assignment || {};
       return Object.assign({}, reportProgress_(row), {
         subbagian: activity.subbagian || CATEGORY_TO_SUBBAGIAN[activity.kategori] || '',
         kategori: activity.kategori || '',
+        no_surat_masuk: incoming.nomor_surat || activity.no_surat_masuk || '',
+        tanggal_surat_masuk: incoming.tanggal || activity.tanggal_surat_masuk || '',
+        no_surat_keluar: outgoing.nomor_surat || '',
+        tanggal_surat_keluar: outgoing.tanggal || '',
+        no_surat_kunjungan: visit.nomor_surat || '',
+        tanggal_surat_kunjungan: visit.tanggal || '',
+        no_surat_tugas: assignment.nomor_surat || activity.no_spk || '',
+        tanggal_surat_tugas: assignment.tanggal || activity.tanggal_spk || '',
       });
     });
   }
@@ -335,17 +370,7 @@ function getAdministrativeMonitoring(options) {
     if (!current || String(report.updated_at || report.created_at || '') > String(current.updated_at || current.created_at || '')) reportsByActivity[key] = report;
   });
 
-  const correspondenceByActivity = {};
-  getRows_('KORESPONDENSI', false).forEach(function (letter) {
-    const key = String(letter.activity_id || '');
-    if (!key) return;
-    if (!correspondenceByActivity[key]) correspondenceByActivity[key] = { incoming: null, outgoing: null, report: null };
-    const type = String(letter.jenis_surat || '').toUpperCase();
-    const slot = type.indexOf('MASUK') >= 0 ? 'incoming' : (type.indexOf('KELUAR') >= 0 || type.indexOf('BALASAN') >= 0) ? 'outgoing' : type.indexOf('LAPORAN') >= 0 ? 'report' : '';
-    if (!slot) return;
-    const current = correspondenceByActivity[key][slot];
-    if (!current || String(letter.tanggal || letter.updated_at || '') >= String(current.tanggal || current.updated_at || '')) correspondenceByActivity[key][slot] = letter;
-  });
+  const correspondenceByActivity = correspondenceByActivity_();
 
   const peopleByActivity = {};
   getRows_('TIM_SPJ', false).forEach(function (person) {
@@ -367,7 +392,7 @@ function getAdministrativeMonitoring(options) {
 
   let items = activities.map(function (activity) {
     const activityId = String(activity.activity_id), report = reportsByActivity[activityId] || {};
-    const letters = correspondenceByActivity[activityId] || {}, incoming = letters.incoming || {}, outgoing = letters.outgoing || {};
+    const letters = correspondenceByActivity[activityId] || {}, incoming = letters.incoming || {}, outgoing = letters.outgoing || {}, visit = letters.visit || {}, assignment = letters.assignment || {};
     const people = peopleByActivity[activityId] || { leader: [], workers: [] };
     const leader = people.leader.join(', ') || activity.pic || '';
     const workers = people.workers.filter(function (name) { return name.toLowerCase().replace(/\s+/g, ' ') !== String(leader).toLowerCase().replace(/\s+/g, ' '); });
@@ -391,6 +416,10 @@ function getAdministrativeMonitoring(options) {
       no_surat_keluar: outgoing.nomor_surat || '',
       tanggal_surat_keluar: outgoing.tanggal || '',
       perihal_surat_keluar: outgoing.perihal || '',
+      no_surat_kunjungan: visit.nomor_surat || '',
+      tanggal_surat_kunjungan: visit.tanggal || '',
+      no_surat_tugas: assignment.nomor_surat || activity.no_spk || '',
+      tanggal_surat_tugas: assignment.tanggal || activity.tanggal_spk || '',
       status_laporan: report.status_hitung || report.status || 'BELUM TERHUBUNG',
       checkpoint_laporan: report.checkpoint_terakhir || '',
     });

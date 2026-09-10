@@ -96,15 +96,20 @@ if (!modules.includes('renderTeam(subbagian,kategori,key)')) throw new Error('Ti
 if (!modules.includes('unitOperationalCards(code,activities,reports,regional)')) throw new Error('Indikator dashboard subbagian tidak ditemukan');
 if (!modules.includes('TERHUBUNG DASHBOARD UTAMA')) throw new Error('Koneksi dashboard subbagian ke dashboard utama tidak ditemukan');
 if (!modules.includes("key=subbagian==='PLT'?'reports-tr'")) throw new Error('Monitoring laporan Pelatihan tidak memakai judul dan jalur TR');
+for (const token of ['Surat Masuk / Tgl', 'Surat Keluar / Tgl', 'Kunjungan / Tugas', 'visitTaskLetterCell']) {
+  if (!modules.includes(token)) throw new Error(`Kolom surat monitoring laporan belum lengkap: ${token}`);
+}
 for (const token of ['Korektor terpantau', 'Korektor Terakhir', 'Riwayat Korektor']) {
   if (!modules.includes(token)) throw new Error(`Data korektor tidak tampil pada Dashboard BT: ${token}`);
 }
 
 const dashboardService = fs.readFileSync(path.join(root, 'DashboardService.gs'), 'utf8');
 if (!dashboardService.includes('subbagian: activity.subbagian')) throw new Error('Relasi laporan ke subbagian kegiatan tidak ditemukan');
-for (const token of ['getAdministrativeMonitoring', 'isAdministrativeOperationalActivity_', 'no_surat_keluar', 'tanggal_surat_keluar', 'status_laporan', 'tr: items.filter']) {
+for (const token of ['getAdministrativeMonitoring', 'isAdministrativeOperationalActivity_', 'correspondenceByActivity_', 'no_surat_keluar', 'tanggal_surat_keluar', 'no_surat_kunjungan', 'no_surat_tugas', 'status_laporan', 'tr: items.filter']) {
   if (!dashboardService.includes(token)) throw new Error(`Relasi Administrasi ke laporan tidak lengkap: ${token}`);
 }
+if (vm.runInContext("correspondenceSlot_({ jenis_surat: 'SURAT TUGAS' })", serverContext) !== 'assignment') throw new Error('Surat tugas tidak terbaca sebagai korespondensi laporan');
+if (vm.runInContext("correspondenceSlot_({ jenis_surat: 'SURAT KUNJUNGAN' })", serverContext) !== 'visit') throw new Error('Surat kunjungan tidak terbaca sebagai korespondensi laporan');
 serverContext.adminTrOperationalFixture = { subbagian: 'PLT', kategori: 'TR' };
 serverContext.adminJidOperationalFixture = { subbagian: 'RPJID', kategori: 'JID' };
 if (!vm.runInContext('isAdministrativeOperationalActivity_(adminTrOperationalFixture)', serverContext)) throw new Error('Administrasi TR masih tertahan dari API monitoring');
@@ -125,6 +130,9 @@ for (const code of ['RPJID', 'BT', 'PLT', 'ADM']) {
 }
 if (!templateService.includes('createInputTemplates')) throw new Error('Generator template tidak ditemukan');
 if (!templateService.includes('importInputTemplates')) throw new Error('Importer template tidak ditemukan');
+for (const token of ['SURAT BALASAN/KELUAR', 'SURAT KUNJUNGAN', 'SURAT TUGAS', 'PENGIRIMAN LAPORAN']) {
+  if (!templateService.includes(token)) throw new Error(`Dropdown template korespondensi belum lengkap: ${token}`);
+}
 
 const recommendationSync = fs.readFileSync(path.join(root, 'RecommendationSync.gs'), 'utf8');
 for (const token of ['connectRekomendasiSource', 'getRekomendasiSyncStatus', "workflow: 'RP'", "SOURCE_SYNC=RP/LAPORAN", 'reportIndex[record.sourceKey]', 'teamIndex[record.sourceKey]']) {
@@ -270,22 +278,22 @@ if (mappedExplicitUniformRp.correctorStages.length !== 3 || mappedExplicitUnifor
   throw new Error('Detail penugasan korektor RP dari format seragam tidak dipertahankan');
 }
 const adminSync = fs.readFileSync(path.join(root, 'AdminSync.gs'), 'utf8');
-for (const token of ['1k587rOiqhWk2uIWrSlhxxjRmD_LW1biy1SR76KsTk0o', 'adminHeaderMap_', 'SURAT MASUK', 'SURAT BALASAN/KELUAR', 'Menu Drop down', 'linkedActivities']) {
+for (const token of ['1k587rOiqhWk2uIWrSlhxxjRmD_LW1biy1SR76KsTk0o', 'adminHeaderMap_', 'SURAT MASUK', 'SURAT BALASAN/KELUAR', 'SURAT KUNJUNGAN', 'SURAT TUGAS', 'Menu Drop down', 'migrateMatched', 'migratedFromActivityId', 'claimedActivities[id]', 'linkedActivities']) {
   if (!adminSync.includes(token)) throw new Error(`Sinkronisasi Administrasi RP/BT tidak lengkap: ${token}`);
 }
-const adminHeaders = ['Kegiatan', 'ID', 'Nama Perusahaan', 'No. Surat Masuk', 'Tanggal Surat Masuk', 'Perihal', 'Jenis Kegiatan', 'No. Surat Balasan / Keluar', 'Tanggal Balasan / Keluar', 'Perihal', 'Lokasi kegiatan', 'Leader', 'Tim'];
-const adminValues = ['RP', 'RP-S-15', 'PT Tasma Puja', '007/TP-KP/I/2024', '05/01/2024', 'Permohonan rekomendasi', 'Rekomendasi Pemupukan', '011507/RPN-PPKS/I/2024', '15/01/2024', 'Balasan rekomendasi', 'Kebun A', 'Leader Satu', 'Petugas Satu, Petugas Dua'];
+const adminHeaders = ['Kegiatan', 'ID', 'Nama Perusahaan', 'No. Surat Masuk', 'Tanggal Surat Masuk', 'Perihal', 'Jenis Kegiatan', 'No. Surat Balasan / Keluar', 'Tanggal Balasan / Keluar', 'Perihal', 'No. Surat Kunjungan', 'No. Surat Tugas', 'Tanggal Balasan Kunjungan', 'Perihal', 'Lokasi kegiatan', 'Leader', 'Tim'];
+const adminValues = ['RP', 'RP-S-15', 'PT Tasma Puja', '007/TP-KP/I/2024', '05/01/2024', 'Permohonan rekomendasi', 'Rekomendasi Pemupukan', '011507/RPN-PPKS/I/2024', '15/01/2024', 'Balasan rekomendasi', 'KUNJ-001/RP/I/2024', 'ST-001/RP/I/2024', '20/01/2024', 'Kunjungan rekomendasi', 'Kebun A', 'Leader Satu', 'Petugas Satu, Petugas Dua'];
 serverContext.adminHeaders = adminHeaders;
 serverContext.adminValues = adminValues;
 const mappedAdmin = vm.runInContext('adminActivityRecord_(adminValues, adminHeaderMap_(adminHeaders), 2)', serverContext);
-if (mappedAdmin.company !== 'PT Tasma Puja' || mappedAdmin.location !== 'Kebun A' || mappedAdmin.kind !== 'Rekomendasi Pemupukan' || mappedAdmin.incomingNo !== '007/TP-KP/I/2024' || mappedAdmin.outgoingNo !== '011507/RPN-PPKS/I/2024' || mappedAdmin.incomingSubject !== 'Permohonan rekomendasi' || mappedAdmin.outgoingSubject !== 'Balasan rekomendasi') {
+if (mappedAdmin.company !== 'PT Tasma Puja' || mappedAdmin.location !== 'Kebun A' || mappedAdmin.kind !== 'Rekomendasi Pemupukan' || mappedAdmin.incomingNo !== '007/TP-KP/I/2024' || mappedAdmin.outgoingNo !== '011507/RPN-PPKS/I/2024' || mappedAdmin.visitNo !== 'KUNJ-001/RP/I/2024' || mappedAdmin.assignmentNo !== 'ST-001/RP/I/2024' || mappedAdmin.visitDate !== '2024-01-20' || mappedAdmin.incomingSubject !== 'Permohonan rekomendasi' || mappedAdmin.outgoingSubject !== 'Balasan rekomendasi' || mappedAdmin.visitSubject !== 'Kunjungan rekomendasi') {
   throw new Error('Pemetaan header Administrasi ke perusahaan, kebun, perihal, kegiatan, dan surat tidak sesuai');
 }
 serverContext.mappedAdmin = mappedAdmin;
 if (vm.runInContext('adminPreferredActivityId_(mappedAdmin)', serverContext) !== 'RP-S-15') throw new Error('ID Administrasi RP tidak memakai prefix RP');
 serverContext.adminMasterFixture = { perusahaan: 'PT Tasma Puja', kebun_lokasi: 'Kebun A', jenis_kegiatan: 'Rekomendasi Pemupukan', kategori: 'RP', subbagian: 'RPJID', tahun: 2024 };
 if (vm.runInContext('adminActivityMatchScore_(adminMasterFixture, mappedAdmin)', serverContext) < 115) throw new Error('Kegiatan Administrasi tidak dapat dihubungkan ke master RP');
-serverContext.adminTrainingValues = ['TR', 'TR-S-28', 'PT Berau Coal', '-', '06/02/2024', 'Permohonan pelatihan', 'HPT', '022903/RPN-PPKS/II/2024', '29/02/2024', 'Pelatihan kultur teknis', 'Marihat dan Kebun Adolina', 'Leader Pelatihan', 'Petugas Pelatihan'];
+serverContext.adminTrainingValues = ['TR', 'TR-S-28', 'PT Berau Coal', '-', '06/02/2024', 'Permohonan pelatihan', 'HPT', '022903/RPN-PPKS/II/2024', '29/02/2024', 'Pelatihan kultur teknis', 'KUNJ-TR-001', 'ST-TR-001', '05/03/2024', 'Kunjungan pelatihan', 'Marihat dan Kebun Adolina', 'Leader Pelatihan', 'Petugas Pelatihan'];
 const mappedTrainingAdmin = vm.runInContext('adminActivityRecord_(adminTrainingValues, adminHeaderMap_(adminHeaders), 29)', serverContext);
 if (mappedTrainingAdmin.category !== 'PLT' || mappedTrainingAdmin.categoryCode !== 'TR' || mappedTrainingAdmin.location !== 'Marihat dan Kebun Adolina') {
   throw new Error('Data Administrasi Pelatihan TR tidak terpetakan ke subbagian Pelatihan');

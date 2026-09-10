@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-09-10 — v2.6.7
+
+- ID dari database Administrasi menjadi acuan aktif untuk kegiatan RP, BT, dan Pelatihan (`RP-*`, `BT-*`, `TR-*`) saat sinkronisasi menemukan record yang cocok.
+- ID kegiatan/laporan/tagihan lama yang cocok diarsipkan dengan catatan migrasi agar data baru dari Administrasi otomatis terhubung ke subbagian terkait tanpa duplikasi.
+- Sinkronisasi Administrasi menambahkan korespondensi `SURAT KUNJUNGAN` dan `SURAT TUGAS` dari kolom sumber Administrasi.
+- Monitoring Laporan RP, BT, dan Pelatihan menampilkan nomor/tanggal Surat Masuk, nomor/tanggal Surat Balasan/Keluar, serta nomor Surat Kunjungan/Surat Tugas.
+- Dropdown template korespondensi diperluas mengikuti jenis surat Administrasi.
+- Deployment produksi diperbarui ke **@72**.
+
 ## 2026-09-10 — v2.6.6
 
 - Menyimpan laporan Bantuan Teknis baru dengan `workflow=BT` agar detail laporan memakai timeline enam checkpoint BT.

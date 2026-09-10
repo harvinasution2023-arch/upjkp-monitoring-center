@@ -89,6 +89,10 @@ function adminActivityRecord_(values, headerMap, rowNumber) {
     outgoingNo: adminText_(adminCell_(values, headerMap, 'No. Surat Balasan / Keluar', 0, 10)),
     outgoing: sourceDate_(adminCell_(values, headerMap, 'Tanggal Balasan / Keluar', 0, 11)),
     outgoingSubject: adminText_(adminCell_(values, headerMap, 'Perihal', 1, 12)),
+    visitNo: adminText_(adminCell_(values, headerMap, 'No. Surat Kunjungan', 0, 15)),
+    assignmentNo: adminText_(adminCell_(values, headerMap, 'No. Surat Tugas', 0, 16)),
+    visitDate: sourceDate_(adminCell_(values, headerMap, 'Tanggal Balasan Kunjungan', 0, 17)),
+    visitSubject: adminText_(adminCell_(values, headerMap, 'Perihal', 2, 18)),
     reportLetterNo: adminText_(adminCell_(values, headerMap, 'No. Surat pengiriman laporan', 0, 18)),
     reportSent: reportSent,
     reportSubject: adminText_(adminCell_(values, headerMap, 'Perihal', 3, 20)),
@@ -170,6 +174,10 @@ function adminActivityFromReport_(report) {
     outgoingNo: '',
     outgoing: '',
     outgoingSubject: '',
+    visitNo: '',
+    assignmentNo: '',
+    visitDate: '',
+    visitSubject: '',
     reportLetterNo: '',
     reportSent: report.fields.tanggal_kirim || '',
     reportSubject: report.subject,
@@ -375,11 +383,14 @@ function syncAdministrasiNow(options) {
         const candidates = activityRows.filter(function (candidate) { return String(candidate.activity_id) !== legacyActivityId && !claimedActivities[String(candidate.activity_id)]; }).map(function (candidate) { return { activity: candidate, score: adminActivityMatchScore_(candidate, record) }; }).filter(function (candidate) { return candidate.score >= 115; }).sort(function (left, right) { return right.score - left.score; });
         if (candidates.length && (candidates.length === 1 || candidates[0].score > candidates[1].score)) activity = candidates[0].activity;
       }
+      const oldActivityId = activity ? String(activity.activity_id) : '';
+      const migrateMatched = Boolean(activity && ['RP', 'BT', 'TR'].indexOf(record.categoryCode) >= 0 && oldActivityId !== preferredActivityId && !activityById[preferredActivityId]);
       const migrateLegacy = Boolean(!activity && legacyActivity && preferredActivityId !== legacyActivityId);
       if (!activity && legacyActivity) activity = legacyActivity;
-      const existed = Boolean(activity) && !migrateLegacy, activityId = migrateLegacy ? preferredActivityId : (activity ? String(activity.activity_id) : preferredActivityId);
+      const migratedFromActivityId = migrateMatched ? oldActivityId : (migrateLegacy ? legacyActivityId : '');
+      const existed = Boolean(activity) && !migrateLegacy && !migrateMatched, activityId = (migrateLegacy || migrateMatched) ? preferredActivityId : (activity ? String(activity.activity_id) : preferredActivityId);
       const companyKey = adminNormalize_(record.company);
-      let companyId = existed ? activity.company_id : companyByName[companyKey];
+      let companyId = activity && activity.company_id ? activity.company_id : companyByName[companyKey];
       if (!companyId) {
         companyId = 'PRSH-' + String(nextCompanyNumber++).padStart(4, '0');
         companiesTable.upsert(companyId, { company_id: companyId, nama: record.company, nama_singkat: record.company, jenis_instansi: record.institution, status_aktif: 'YA', catatan: 'SOURCE_SYNC=ADM', created_at: nowIso_(), updated_at: nowIso_(), archived_at: '' });
@@ -391,6 +402,14 @@ function syncAdministrasiNow(options) {
       const activityResult = activitiesTable.upsert(activityId, activityMapped);
       if (activityResult === 'inserted') insertedActivities += 1; else updatedActivities += 1;
       if (existed && String(activity.activity_id).indexOf('ADM-SRC-') !== 0) linkedActivities += 1;
+      if (migrateMatched && activity && !activity.archived_at) {
+        activitiesTable.upsert(oldActivityId, {
+          archived_at: nowIso_(),
+          updated_at: nowIso_(),
+          catatan: adminMergeNote_(activity.catatan, ['MIGRATED_TO=' + activityId, 'ADMIN_SOURCE_ID=' + record.sourceKey]),
+        });
+        migratedIds += 1;
+      }
       if (legacyActivity && String(legacyActivity.activity_id) !== activityId && !legacyActivity.archived_at) {
         activitiesTable.upsert(legacyActivityId, {
           archived_at: nowIso_(),
@@ -401,12 +420,14 @@ function syncAdministrasiNow(options) {
       }
       activity = activitiesTable.get(activityId);
       activityById[activityId] = activity; sourceActivity[record.sourceKey] = activity; claimedActivities[activityId] = true;
+      [migratedFromActivityId, legacyActivityId].forEach(function (id) { if (id && id !== activityId) claimedActivities[id] = true; });
 
       const reportSource = reportsBySource[record.sourceKey] || null;
-      const legacyReport = legacyActivityId !== activityId ? (reportByActivity[legacyActivityId] || null) : null;
+      const previousActivityIds = [migratedFromActivityId, legacyActivityId].filter(function (id, index, ids) { return id && id !== activityId && ids.indexOf(id) === index; });
+      const legacyReport = previousActivityIds.map(function (id) { return reportByActivity[id] || null; }).filter(Boolean)[0] || null;
       let report = reportByActivity[activityId] || null;
       if (!report && legacyReport) report = legacyReport;
-      const reportUsesLegacy = Boolean(report && String(report.activity_id) === legacyActivityId && legacyActivityId !== activityId);
+      const reportUsesLegacy = Boolean(report && String(report.activity_id) !== activityId);
       const reportId = report && !reportUsesLegacy ? String(report.report_id) : reportIdForActivity_(activityId);
       const reportMapped = { report_id: reportId, activity_id: activityId, company_id: companyId, perusahaan: record.company, regional: activity.regional || '', kebun: record.location || activity.kebun_lokasi || '', nama_kegiatan: record.kind, tahun: record.year, workflow: record.categoryCode === 'RP' ? 'RP' : record.categoryCode === 'BT' ? 'BT' : record.categoryCode === 'ADM' ? 'ADMINISTRASI' : 'UMUM', pic: (reportSource && (reportSource.pic || reportSource.leader)) || record.leader || activity.pic || '', catatan: adminMergeNote_(report ? report.catatan : '', ['SOURCE_SYNC=ADM/LAPORAN', 'ADMIN_SOURCE_ID=' + record.sourceKey]), updated_at: nowIso_(), archived_at: '' };
       if (!report || reportUsesLegacy) { reportMapped.created_at = nowIso_(); reportMapped.status = 'DRAFT'; }
@@ -427,14 +448,15 @@ function syncAdministrasiNow(options) {
       if (record.reportSent) { reportMapped.tanggal_kirim = record.reportSent; reportMapped.checkpoint_terakhir = 'PENGIRIMAN'; reportMapped.tanggal_checkpoint = record.reportSent; reportMapped.status = 'NET'; }
       const reportResult = reportsTable.upsert(reportId, reportMapped);
       if (reportResult === 'inserted') insertedReports += 1; else updatedReports += 1;
-      if (legacyReport && String(legacyReport.report_id) !== reportId && !legacyReport.archived_at) {
-        reportsTable.upsert(legacyReport.report_id, {
+      previousActivityIds.map(function (id) { return reportByActivity[id] || null; }).filter(Boolean).forEach(function (oldReport) {
+        if (String(oldReport.report_id) === reportId || oldReport.archived_at) return;
+        reportsTable.upsert(oldReport.report_id, {
           archived_at: nowIso_(),
           updated_at: nowIso_(),
-          catatan: adminMergeNote_(legacyReport.catatan, ['MIGRATED_TO=' + reportId]),
+          catatan: adminMergeNote_(oldReport.catatan, ['MIGRATED_TO=' + reportId]),
         });
         migratedIds += 1;
-      }
+      });
       report = reportsTable.get(reportId); reportByActivity[activityId] = report;
       (reportSource ? reportSource.stages : []).forEach(function (stage) {
         const historyId = reportId + '-' + stage.code.replace(/\s+/g, '-');
@@ -452,6 +474,16 @@ function syncAdministrasiNow(options) {
         correspondenceTable.upsert(correspondenceId, { correspondence_id: correspondenceId, activity_id: activityId, jenis_surat: 'SURAT BALASAN/KELUAR', nomor_surat: record.outgoingNo, tanggal: record.outgoing, perihal: record.outgoingSubject, updated_at: nowIso_(), created_at: nowIso_() });
         correspondenceRows += 1;
       }
+      if (record.visitNo || record.visitDate || record.visitSubject) {
+        const correspondenceId = 'KOR-ADM-' + record.safeKey + '-KUNJUNGAN';
+        correspondenceTable.upsert(correspondenceId, { correspondence_id: correspondenceId, activity_id: activityId, jenis_surat: 'SURAT KUNJUNGAN', nomor_surat: record.visitNo, tanggal: record.visitDate, perihal: record.visitSubject, updated_at: nowIso_(), created_at: nowIso_() });
+        correspondenceRows += 1;
+      }
+      if (record.assignmentNo) {
+        const correspondenceId = 'KOR-ADM-' + record.safeKey + '-TUGAS';
+        correspondenceTable.upsert(correspondenceId, { correspondence_id: correspondenceId, activity_id: activityId, jenis_surat: 'SURAT TUGAS', nomor_surat: record.assignmentNo, tanggal: record.visitDate, perihal: record.visitSubject, updated_at: nowIso_(), created_at: nowIso_() });
+        correspondenceRows += 1;
+      }
       if (record.reportLetterNo || record.reportSent || record.reportSubject) {
         const correspondenceId = 'KOR-ADM-' + record.safeKey + '-LAPORAN';
         correspondenceTable.upsert(correspondenceId, { correspondence_id: correspondenceId, activity_id: activityId, jenis_surat: 'PENGIRIMAN LAPORAN', nomor_surat: record.reportLetterNo, tanggal: record.reportSent, perihal: record.reportSubject, updated_at: nowIso_(), created_at: nowIso_() });
@@ -466,24 +498,25 @@ function syncAdministrasiNow(options) {
       });
 
       if (record.value || record.invoice || record.invoiceDate) {
-        const legacyBilling = legacyActivityId !== activityId ? (billingByActivity[legacyActivityId] || null) : null;
+        const legacyBilling = previousActivityIds.map(function (id) { return billingByActivity[id] || null; }).filter(Boolean)[0] || null;
         let billing = billingByActivity[activityId] || (record.invoice ? billingByInvoice[adminNormalize_(record.invoice)] : null) || null;
-        if (billing && String(billing.source_id || '') === legacyActivityId && legacyActivityId !== activityId) billing = null;
+        if (billing && previousActivityIds.indexOf(String(billing.source_id || '')) >= 0) billing = null;
         if (!billing && legacyBilling) billing = legacyBilling;
-        const billingUsesLegacy = Boolean(billing && String(billing.source_id || '') === legacyActivityId && legacyActivityId !== activityId);
+        const billingUsesLegacy = Boolean(billing && String(billing.source_id || '') !== activityId);
         const billingId = billing && !billingUsesLegacy ? String(billing.billing_id) : 'BILL-' + activityId;
         const billingMapped = { billing_id: billingId, company_id: companyId, perusahaan: record.company, kebun: record.location || activity.kebun_lokasi || (billing ? billing.kebun : ''), source_type: record.categoryCode === 'ADM' ? 'ADMINISTRASI' : 'KEGIATAN', source_id: activityId, nilai: record.value || (billing ? billing.nilai : 0), nomor_invoice: record.invoice || (billing ? billing.nomor_invoice : ''), tanggal_invoice: record.invoiceDate || (billing ? billing.tanggal_invoice : ''), jatuh_tempo: record.due || (billing ? billing.jatuh_tempo : ''), status: record.invoice ? 'TERBIT' : (billing ? billing.status : 'DRAFT'), nomor_jurnal: record.journal || (billing ? billing.nomor_jurnal : ''), pic: record.leader || activity.pic || (billing ? billing.pic : ''), catatan: adminMergeNote_(billing ? billing.catatan : '', ['SOURCE_SYNC=ADM', 'ADMIN_SOURCE_ID=' + record.sourceKey]), updated_at: nowIso_(), archived_at: '' };
         if (!billing || billingUsesLegacy) billingMapped.created_at = nowIso_();
         const billingResult = billingTable.upsert(billingId, billingMapped);
         if (billingResult === 'inserted') insertedBilling += 1; else updatedBilling += 1;
-        if (legacyBilling && String(legacyBilling.billing_id) !== billingId && !legacyBilling.archived_at) {
-          billingTable.upsert(legacyBilling.billing_id, {
+        previousActivityIds.map(function (id) { return billingByActivity[id] || null; }).filter(Boolean).forEach(function (oldBilling) {
+          if (String(oldBilling.billing_id) === billingId || oldBilling.archived_at) return;
+          billingTable.upsert(oldBilling.billing_id, {
             archived_at: nowIso_(),
             updated_at: nowIso_(),
-            catatan: adminMergeNote_(legacyBilling.catatan, ['MIGRATED_TO=' + billingId]),
+            catatan: adminMergeNote_(oldBilling.catatan, ['MIGRATED_TO=' + billingId]),
           });
           migratedIds += 1;
-        }
+        });
         billing = billingTable.get(billingId); billingByActivity[activityId] = billing;
         if (record.invoice) billingByInvoice[adminNormalize_(record.invoice)] = billing;
       }

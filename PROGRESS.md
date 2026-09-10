@@ -3,10 +3,10 @@
 ## Status terakhir
 
 - Status: **Berjalan**
-- Deployment aktif: **@68**
+- Deployment aktif: **@72**
 - URL aplikasi: `https://script.google.com/macros/s/AKfycbxT0gids44DaWESXxIDj6Mrjc146qhsqoq-4b-605j3bLrSfjyCNLELdbIm_FN0fJP-6A/exec`
 - Branch GitHub: `main`
-- Versi aplikasi: **v2.6.6**
+- Versi aplikasi: **v2.6.7**
 
 ## Sudah selesai
 
@@ -24,6 +24,10 @@
 - Semua monitoring laporan yang sudah NET kini berstatus **SELESAI**, tidak masuk daftar menunggu/terlambat, dan countdown SLA berhenti.
 - Data lama yang sudah mencapai `KOREKTOR FINAL` atau `PENGIRIMAN` juga diperlakukan sebagai selesai saat tanggal NET kosong; input kegiatan baru menyediakan `Tanggal NET (opsional)`.
 - ID aktif diseragamkan berdasarkan kategori: `RP-*` untuk Rekomendasi Pemupukan, `BT-*` untuk Bantuan Teknis, dan `TR-*` untuk Pelatihan. Prefix lama seperti `RP-BT`, `RP-FMT`, `RP-MON`, dan `ADM-SRC-RP/BT/TR` hanya dikenali untuk arsip saat sinkronisasi ulang.
+- Audit workbook lokal `Data base Admin.xlsx` pada **10 September 2026** menemukan **3.063 baris data Administrasi** dengan ID terisi dan tanpa duplikasi: **226 RP**, **2.791 BT**, dan **46 Pelatihan (TR)**.
+- Sinkronisasi Administrasi v2.6.7 memakai ID sumber Administrasi sebagai ID aktif kegiatan RP/BT/TR ketika record cocok, lalu mengarsipkan ID kegiatan/laporan/tagihan lama dengan catatan `MIGRATED_TO`.
+- Korespondensi Administrasi sekarang menyimpan `SURAT KUNJUNGAN` dan `SURAT TUGAS` selain Surat Masuk, Surat Balasan/Keluar, dan Pengiriman Laporan.
+- Monitoring Laporan RP, BT, dan Pelatihan menampilkan nomor/tanggal Surat Masuk, nomor/tanggal Surat Balasan/Keluar, nomor Surat Kunjungan, dan nomor Surat Tugas.
 - Sebanyak **26 data penagihan** dari sumber lama tetap dipertahankan.
 - Baris Swasta tanpa nama kebun tetap dimuat dengan lokasi `Belum ditentukan`.
 - Nomor ganda pada Reg II KSO dibuat unik agar tidak saling menimpa.
@@ -72,16 +76,19 @@
 - Pemeriksaan `python -m unittest discover -s .\tests -p "test_*.py"` lulus: **5 dari 5 test**.
 - Standardisasi ID kategori v2.6.5 dijalankan ulang melalui akun pemilik pada **9 September 2026**; deployment final tanpa endpoint maintenance aktif sebagai **@66**.
 - Perbaikan workflow BT v2.6.6 dibuat pada **10 September 2026 pukul 10:36 WIB**; source berhasil `clasp push`, versi Apps Script **67** dibuat, dan deployment produksi aktif sebagai **@68**.
+- Kode v2.6.7 untuk ID Administrasi sebagai acuan RP/BT/TR dan kolom surat monitoring laporan dirilis pada **10 September 2026 pukul 12:02 WIB**; source berhasil `clasp push`, versi Apps Script **71** dibuat, dan deployment produksi aktif sebagai **@72**.
+- Percobaan `clasp run syncAdministrasi --params "[{}]"` pada **10 September 2026 pukul 12:00 WIB** ditolak oleh Execution API (`Unable to run script function`), sehingga migrasi data aktual perlu dipicu dari akun pemilik lewat **Administrasi -> Import / Export -> Sinkronkan Administrasi** atau **Sinkronkan Semua Sumber**.
 - Verifikasi endpoint `?status=rp` dari terminal pada **10 September 2026** dialihkan ke halaman login Google karena akses web app masih `MYSELF`; deployment dikonfirmasi melalui `clasp deployments`.
-- Branch lokal `main` lebih maju dari `origin/main`; push GitHub memerlukan kredensial sesi terminal.
+- Branch lokal `main` tersinkron dengan `origin/main` setelah commit v2.6.7.
 
 ## Checkpoint untuk dilanjutkan
 
-- Checkpoint terbaru disimpan pada **10 September 2026 pukul 10:36 WIB** setelah deployment **@68 / v2.6.6** untuk kompatibilitas workflow BT.
+- Checkpoint terbaru disimpan pada **10 September 2026 pukul 12:02 WIB** setelah deployment **@72 / v2.6.7** untuk ID Administrasi sebagai acuan RP/BT/TR dan kolom surat monitoring laporan.
+- Checkpoint sebelumnya disimpan pada **10 September 2026 pukul 10:36 WIB** setelah deployment **@68 / v2.6.6** untuk kompatibilitas workflow BT.
 - Checkpoint ini disimpan pada **9 September 2026 pukul 18:45 WIB** setelah dashboard produksi dibuka ulang dari Chrome Profile 2.
 - Checkpoint terbaru dibuat pada **9 September 2026** setelah deployment **@66 / v2.6.5** untuk menyeragamkan ID aktif menjadi `RP-*`, `BT-*`, dan `TR-*`.
-- Kondisi kerja terakhir: dashboard produksi aktif pada v2.6.6; data korektor RP dan BT dibaca dari sumber seragam, disimpan ke database master, dan Monitoring Laporan BT kompatibel dengan workflow baru `BT` maupun historis `UMUM`.
-- Perubahan kode dan dokumentasi masih tersimpan lokal (belum di-commit/push ke GitHub); jangan membuang working tree saat melanjutkan.
+- Kondisi kerja terakhir: dashboard produksi aktif pada v2.6.7; ID kegiatan RP/BT/TR mengikuti sumber Administrasi saat sinkronisasi cocok, dan Monitoring Laporan menampilkan surat masuk/keluar/kunjungan/tugas.
+- Perubahan kode dan dokumentasi v2.6.7 telah dirilis ke Apps Script dan dicatat di GitHub.
 - Pusat input/sinkronisasi berada di **Administrasi → Import / Export → Sinkronkan Semua Sumber**.
 - Jangan mengaktifkan kembali sumber lama `1tNZmCWPzHOB69yEwNOJTijwQxCyJkzMnilh79T4FFtc`.
 - Saat melanjutkan, mulai dengan `git status --short --branch`, buka `PROGRESS.md`, lalu verifikasi status `?status=rp` sebelum perubahan baru.
