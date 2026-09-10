@@ -83,10 +83,13 @@
 - Percobaan `clasp run syncAdministrasi --params "[{}]"` setelah deployment final **@72** pada **10 September 2026 pukul 12:20 WIB** ditolak oleh Execution API (`Unable to run script function`), sehingga migrasi data aktual perlu dipicu dari akun pemilik lewat **Administrasi -> Import / Export -> Sinkronkan Administrasi** atau **Sinkronkan Semua Sumber**.
 - Dashboard produksi dibuka di Chrome Profile 2 pada halaman **Import / Export** agar sinkronisasi Administrasi dapat dijalankan dari UI pemilik.
 - Verifikasi endpoint `?status=rp` dari terminal pada **10 September 2026** dialihkan ke halaman login Google karena akses web app masih `MYSELF`; deployment dikonfirmasi melalui `clasp deployments`.
-- Branch lokal `main` tersinkron dengan `origin/main` setelah commit v2.6.7.
+- Branch lokal `main` tersinkron dengan `origin/main` setelah commit `ec1920f`.
 
 ## Checkpoint untuk dilanjutkan
 
+- Checkpoint aktif: source sudah tersimpan pada commit `ec1920f` dan `origin/main`; deployment produksi menggunakan URL yang sama pada **@78 / Apps Script version 77**. Dashboard terakhir dibuka melalui Chrome Profile 2 pada `#/dashboard`.
+- Verifikasi terakhir: `node .\tests\gas_static_test.js` lulus dan `python -m unittest discover -s .\tests -p "test_*.py"` lulus **5 dari 5 test**.
+- Fitur v2.7.0 yang siap digunakan: indikator kelengkapan, menu Tindakan kegiatan/surat, menu Lengkapi laporan, menu Atur korektor, histori korektor tanpa duplikasi, dan kolom Link Laporan NET.
 - Checkpoint terbaru disimpan pada **10 September 2026** setelah deployment **@78 / v2.7.0** untuk menu Tindakan kelengkapan kegiatan, pembaruan korektor/checkpoint laporan, dan Link Laporan NET.
 - Checkpoint sebelumnya disimpan pada **10 September 2026 pukul 12:20 WIB** setelah deployment **@72 / v2.6.7** untuk ID Administrasi sebagai acuan RP/BT/TR dan kolom surat monitoring laporan.
 - Checkpoint sebelumnya disimpan pada **10 September 2026 pukul 10:36 WIB** setelah deployment **@68 / v2.6.6** untuk kompatibilitas workflow BT.
