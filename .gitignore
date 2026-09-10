@@ -11,6 +11,9 @@ backup/
 logs/
 output/
 documents/
+scripts/sync_rp_correctors_to_google.py
+scripts/update_rp_correctors.py
+google-apps-script/RpCorrectorPatch.gs
 *.xlsx
 *.xls
 *.xlsm
