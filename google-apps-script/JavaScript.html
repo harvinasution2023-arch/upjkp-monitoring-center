@@ -1,7 +1,7 @@
 <script>
 'use strict';
 
-const state={configured:false,view:location.hash.replace(/^#\/?/,'')||'dashboard',year:'',query:'',filterStatus:'',alertFilter:'Semua',selectedRecord:'',returnView:'reports-rp',dashboard:null,bootstrap:null,currentReports:[]};
+const state={configured:false,view:location.hash.replace(/^#\/?/,'')||'dashboard',year:'',query:'',personnelId:'',filterStatus:'',alertFilter:'Semua',selectedRecord:'',returnView:'reports-rp',dashboard:null,bootstrap:null,currentReports:[]};
 const content=document.querySelector('#content');
 const dialog=document.querySelector('#activity-dialog');
 const form=document.querySelector('#activity-form');
@@ -109,7 +109,7 @@ async function render() {
   try {
     switch(state.view) {
       case 'dashboard': renderDashboard(state.dashboard); break;
-      case 'personnel': await renderPersonnelRecapV2(); break;
+      case 'personnel': await renderPersonnelRecapV3(); break;
       case 'rpjid': await renderUnit('RPJID'); break;
       case 'bt': await renderUnit('BT'); break;
       case 'plt': await renderUnit('PLT'); break;
@@ -169,7 +169,7 @@ async function refresh() {
 }
 
 function navigate(view,{keepFilter=false}={}) {
-  state.view=view;state.query='';
+  state.view=view;state.query='';state.personnelId='';
   if (!keepFilter) state.filterStatus='';
   location.hash='/'+view;
   closeSidebar();
@@ -326,6 +326,7 @@ document.addEventListener('click',async event=>{
 document.addEventListener('change',async event=>{
   if (event.target.id==='dashboard-year'||event.target.id==='unit-year') {state.year=event.target.value;await refresh()}
   if (event.target.id==='report-status-filter') {state.filterStatus=event.target.value;await render()}
+  if (event.target.dataset.role==='personnel-filter') {state.personnelId=event.target.value;await render()}
 });
 
 document.querySelector('#global-search').addEventListener('submit',event=>{
@@ -374,7 +375,7 @@ reportCheckpointForm.addEventListener('submit',async event=>{
 
 window.addEventListener('hashchange',()=>{
   const requested=location.hash.replace(/^#\/?/,'');
-  if (requested&&requested!==state.view) {state.view=requested;state.query='';state.filterStatus='';render()}
+  if (requested&&requested!==state.view) {state.view=requested;state.query='';state.personnelId='';state.filterStatus='';render()}
 });
 
 document.addEventListener('click', async event=>{

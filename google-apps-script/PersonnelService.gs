@@ -381,21 +381,71 @@ function getPersonnelRecapInternal_(options) {
     summary.groups[group].total += item.total;
   });
 
+  const upjkpPersonnelIds = {};
+  upjkpAssignments.forEach(function (assignment) {
+    const personnelId = String(assignment.personnel_id || '').trim();
+    if (personnelId) upjkpPersonnelIds[personnelId] = true;
+  });
+  const itemByPersonnelId = {};
+  items.forEach(function (item) {
+    itemByPersonnelId[item.personnel_id] = item;
+  });
+  const upjkpItems = upjkpAssignments.map(function (assignment) {
+    const item = itemByPersonnelId[String(assignment.personnel_id || '')] || {};
+    return Object.assign({}, assignment, {
+      nama: assignment.nama_master || assignment.nama_sheet2 || '',
+      jabatan: assignment.jabatan || '',
+      RP: Number(item.RP || 0),
+      BT: Number(item.BT || 0),
+      TR: Number(item.TR || 0),
+      total: Number(item.total || 0),
+    });
+  });
+  const otherItems = items.filter(function (item) {
+    return !upjkpPersonnelIds[item.personnel_id];
+  });
+  const filterPeople = items.map(function (item) {
+    return {
+      personnel_id: item.personnel_id,
+      nama: item.nama,
+      role: upjkpPersonnelIds[item.personnel_id] ? 'UPJKP' : 'Personel lainnya',
+    };
+  }).sort(function (left, right) {
+    return String(left.nama).localeCompare(String(right.nama));
+  });
+
   const query = String(options.query || '').trim().toLowerCase();
-  const filtered = query ? items.filter(function (item) {
+  const personnelIdFilter = String(options.personnel_id || '').trim();
+  const matchesQuery = function (item) {
+    if (!query) return true;
     return [item.nama, item.kelompok, item.bidang, item.jabatan_upjkp, item.personnel_upjkp_id, item.nama_database, item.cocok_database]
       .join(' ').toLowerCase().indexOf(query) >= 0;
-  }) : items;
-  const filteredAssignments = query ? upjkpAssignments.filter(function (assignment) {
-    return [assignment.nama_sheet2, assignment.nama_master, assignment.jabatan, assignment.status_kecocokan]
+  };
+  const matchesAssignmentQuery = function (assignment) {
+    if (!query) return true;
+    return [assignment.nama_sheet2, assignment.nama_master, assignment.jabatan, assignment.status_kecocokan, assignment.personnel_upjkp_id]
       .join(' ').toLowerCase().indexOf(query) >= 0;
-  }) : upjkpAssignments;
+  };
+  const filteredAll = items.filter(function (item) {
+    return (!personnelIdFilter || item.personnel_id === personnelIdFilter) && matchesQuery(item);
+  });
+  const filtered = filteredAll.filter(function (item) {
+    return !upjkpPersonnelIds[item.personnel_id];
+  });
+  const filteredAssignments = upjkpItems.filter(function (assignment) {
+    return (!personnelIdFilter || String(assignment.personnel_id || '') === personnelIdFilter) && matchesAssignmentQuery(assignment);
+  });
   const upjkpMatched = upjkpAssignments.filter(function (assignment) {
     return assignment.status_kecocokan === 'COCOK';
   }).length;
   return success_({
-    items: filtered, total: filtered.length, summary: Object.assign(summary, {
+    items: filtered, total: filtered.length, upjkp_items: filteredAssignments, other_items: filtered,
+    filter_people: filterPeople, summary: Object.assign(summary, {
       upjkp_assignments: upjkpAssignments.length,
+      upjkp_people: upjkpItems.length,
+      upjkp_active: upjkpItems.filter(function (item) { return item.total > 0; }).length,
+      other_people: otherItems.length,
+      other_active: otherItems.filter(function (item) { return item.total > 0; }).length,
       upjkp_matched: upjkpMatched,
       upjkp_unmatched: upjkpAssignments.length - upjkpMatched,
     }),

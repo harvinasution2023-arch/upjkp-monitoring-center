@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-11 - v2.14.0
+
+- Memisahkan tabel **Pemetaan Personel UPJKP** dari **Rekap Personel Lainnya** pada menu Rekap Petugas.
+- Menampilkan ID Personel UPJKP, nama kanonik, jabatan, serta jumlah keterlibatan unik RP, BT, dan TR untuk 22 personel UPJKP.
+- Menambahkan dropdown **Filter nama** yang dapat digunakan untuk menampilkan satu personel atau seluruh rekap.
+- API rekap mengembalikan daftar personel UPJKP dan personel lainnya secara terpisah, dengan hitungan keterlibatan yang sama.
+- Deployment produksi diperbarui ke **@95** (Apps Script version **95**).
+
 ## 2026-09-11 - v2.13.0
 
 - Menambahkan Muhayat ke `MASTER_PETUGAS` sebagai **Staff Penunjang**.

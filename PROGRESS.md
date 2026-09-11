@@ -3,21 +3,23 @@
 ## Status terakhir
 
 - Status: **Berjalan**
-- Deployment aktif: **@94**
+- Deployment aktif: **@95**
 - URL aplikasi: `https://script.google.com/macros/s/AKfycbxT0gids44DaWESXxIDj6Mrjc146qhsqoq-4b-605j3bLrSfjyCNLELdbIm_FN0fJP-6A/exec`
 - Branch GitHub: `main`
-- Versi aplikasi: **v2.13.0**
+- Versi aplikasi: **v2.14.0**
 
 ## Sudah selesai
 
-- File `Nama petugas untuk kegiatan upjkp.xlsx` telah dimasukkan sebagai referensi `MASTER_PETUGAS` di Google Sheet Master: 182 nama unik, dengan kelompok Peneliti, Staff Penunjang, dan Pelaksana/Teknis.
+- File `Nama petugas untuk kegiatan upjkp.xlsx` telah dimasukkan sebagai referensi `MASTER_PETUGAS` di Google Sheet Master: 183 nama unik, dengan kelompok Peneliti, Staff Penunjang, dan Pelaksana/Teknis.
 - Menu **Rekap Petugas** menghitung keterlibatan kegiatan unik per nama untuk BT, RP, dan TR berdasarkan `TIM_SPJ`, PIC kegiatan, dan PIC laporan. Perbedaan gelar dinormalisasi dan tidak dihitung sebagai nama berbeda.
 - `Sheet2` pada workbook yang sama telah dipetakan ke `MASTER_PETUGAS_UPJKP`: 21 nama/jabatan menggunakan nama kanonik `MASTER_PETUGAS`; tujuh perbedaan nama dikonfigurasi sebagai alias orang yang sama.
 - Menu **Rekap Petugas** menampilkan tabel pemetaan Subbagian UPJKP, jabatan, nama Sheet2, nama master, status kecocokan, dan `personnel_id`.
 - Setiap nama pada `MASTER_PETUGAS_UPJKP` memiliki ID khusus Subbagian UPJKP berformat `UPJKP-PER-001` sampai `UPJKP-PER-021`; ID `PET-xxxx` tetap menjadi referensi ke master umum.
 - Muhayat ditambahkan sebagai **Staff Ahli UPJKP** pada urutan `UPJKP-PER-002`; ID personel setelahnya diurutkan ulang sampai `UPJKP-PER-022`, sehingga total personel UPJKP menjadi 22.
 - Muhayat juga ditambahkan ke `MASTER_PETUGAS` sebagai **Staff Penunjang** dengan ID master `PET-0183` dan bidang `Staff Ahli UPJKP`.
-- Verifikasi produksi melalui Chrome menemukan sheet `MASTER_PETUGAS` berisi 182 nama, serta rekap aktif menampilkan 798 kegiatan BT, 386 RP, dan 46 TR.
+- Pemetaan UPJKP pada menu **Rekap Petugas** dipisahkan dari rekap personel lainnya. Tabel UPJKP menampilkan `UPJKP-PER-001` sampai `UPJKP-PER-022`, nama, jabatan, serta keterlibatan unik RP, BT, dan TR.
+- Rekap personel lainnya tidak lagi mencampur 22 personel UPJKP; dropdown **Filter nama** tersedia untuk memilih nama tertentu pada kedua bagian.
+- Verifikasi produksi melalui Chrome menemukan sheet `MASTER_PETUGAS` berisi 183 nama, serta rekap aktif menampilkan 798 kegiatan BT, 386 RP, dan 46 TR.
 
 - Dashboard Utama dan dashboard khusus empat subbagian.
 - Google Sheet khusus **Monitoring Rekomendasi Pemupukan** dengan sepuluh tab regional/swasta.
@@ -103,6 +105,7 @@
 - Kode v2.11.0 berhasil dibuat sebagai Apps Script version **92** dan deployment produksi aktif sebagai **@92**; seluruh 21 personel UPJKP telah memiliki ID khusus dan terverifikasi melalui export Google Sheet.
 - Kode v2.12.0 berhasil dibuat sebagai Apps Script version **93** dan deployment produksi aktif sebagai **@93**; `MASTER_PETUGAS_UPJKP` terverifikasi berisi 22 personel dengan urutan ID baru.
 - Kode v2.13.0 berhasil dibuat sebagai Apps Script version **94** dan deployment produksi aktif sebagai **@94**; Muhayat terhubung dari `UPJKP-PER-002` ke `PET-0183` sebagai Staff Penunjang.
+- Kode v2.14.0 untuk pemisahan rekap UPJKP, keterlibatan RP/BT/TR, dan dropdown filter nama dirilis sebagai Apps Script version **95**; deployment produksi aktif sebagai **@95**.
 - Percobaan `clasp run syncAdministrasi --params "[{}]"` setelah deployment final **@72** pada **10 September 2026 pukul 12:20 WIB** ditolak oleh Execution API (`Unable to run script function`), sehingga migrasi data aktual perlu dipicu dari akun pemilik lewat **Administrasi -> Import / Export -> Sinkronkan Administrasi** atau **Sinkronkan Semua Sumber**.
 - Dashboard produksi dibuka di Chrome Profile 2 pada halaman **Import / Export** agar sinkronisasi Administrasi dapat dijalankan dari UI pemilik.
 - Verifikasi endpoint `?status=rp` dari terminal pada **10 September 2026** dialihkan ke halaman login Google karena akses web app masih `MYSELF`; deployment dikonfirmasi melalui `clasp deployments`.
@@ -110,7 +113,7 @@
 
 ## Checkpoint untuk dilanjutkan
 
-- Checkpoint aktif: koreksi kategori BT v2.7.1 selesai dan fitur tindakan enam checkpoint v2.8.0 sudah dirilis; deployment produksi menggunakan URL yang sama pada **@86 / Apps Script version 85**. Dashboard/Monitoring Laporan terakhir dibuka pada Chrome yang sedang berjalan.
+- Checkpoint aktif: pemetaan UPJKP dan rekap personel lainnya telah dipisahkan pada v2.14.0; deployment produksi menggunakan URL yang sama pada **@95 / Apps Script version 95**. Dashboard/Monitoring Laporan terakhir dibuka pada Chrome yang sedang berjalan.
 - Verifikasi terakhir: `node .\tests\gas_static_test.js` lulus dan `python -m unittest discover -s .\tests -p "test_*.py"` lulus **5 dari 5 test**.
 - Fitur v2.7.0 yang siap digunakan: indikator kelengkapan, menu Tindakan kegiatan/surat, menu Lengkapi laporan, menu Atur korektor, histori korektor tanpa duplikasi, dan kolom Link Laporan NET.
 - Checkpoint terbaru disimpan pada **11 September 2026** setelah deployment **@82 / v2.7.1** dan koreksi dua kegiatan `FS.lahan`/`Ev.Prod` dari RP ke BT di sumber Administrasi serta database master.
