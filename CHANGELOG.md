@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-11 - v2.11.0
+
+- Menambahkan ID personel khusus Subbagian UPJKP pada `MASTER_PETUGAS_UPJKP` dengan format `UPJKP-PER-001` sampai `UPJKP-PER-021`.
+- Mempertahankan `PET-xxxx` sebagai ID referensi ke `MASTER_PETUGAS` umum.
+- Menampilkan ID personel UPJKP dan Master Personnel ID pada tabel pemetaan dashboard.
+- Deployment produksi diperbarui ke **@92** (Apps Script version **92**).
+
 ## 2026-09-11 - v2.10.1
 
 - Menetapkan tujuh perbedaan nama pada `Sheet2` sebagai alias orang yang sama berdasarkan konfirmasi pengguna.

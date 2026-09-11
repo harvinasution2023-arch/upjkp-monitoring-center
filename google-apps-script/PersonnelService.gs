@@ -5,7 +5,7 @@ const PERSONNEL_TABLE_HEADERS_ = Object.freeze([
   'status_aktif', 'sumber_file', 'sumber_versi', 'created_at', 'updated_at', 'archived_at',
 ]);
 const PERSONNEL_UPJKP_TABLE_HEADERS_ = Object.freeze([
-  'assignment_id', 'nama_sheet2', 'jabatan', 'nama_normalisasi', 'personnel_id', 'nama_master',
+  'assignment_id', 'personnel_upjkp_id', 'nama_sheet2', 'jabatan', 'nama_normalisasi', 'personnel_id', 'nama_master',
   'status_kecocokan', 'sumber_file', 'sumber_sheet', 'sumber_versi', 'created_at', 'updated_at', 'archived_at',
 ]);
 
@@ -164,6 +164,7 @@ function importPersonnelUpjkpIfNeeded_(roster) {
       const person = reference.person || {};
       return {
         assignment_id: source.assignment_id,
+        personnel_upjkp_id: 'UPJKP-PER-' + String(PERSONNEL_UPJKP_SOURCE_.indexOf(source) + 1).padStart(3, '0'),
         nama_sheet2: source.nama,
         jabatan: source.jabatan,
         nama_normalisasi: personnelNormalizeName_(source.nama),
@@ -284,6 +285,7 @@ function getPersonnelRecapInternal_(options) {
       kelompok: person.kelompok,
       bidang: person.bidang,
       jabatan_upjkp: assignments.map(function (assignment) { return assignment.jabatan; }).filter(Boolean).join(' | '),
+      personnel_upjkp_id: assignments.map(function (assignment) { return assignment.personnel_upjkp_id; }).filter(Boolean).join(' | '),
       nama_database: item.nama_database.join(' | '),
       cocok_database: item.nama_database.length ? 'COCOK' : 'BELUM DITEMUKAN',
       BT: bt, RP: rp, TR: tr, total: bt + rp + tr,
@@ -315,7 +317,7 @@ function getPersonnelRecapInternal_(options) {
 
   const query = String(options.query || '').trim().toLowerCase();
   const filtered = query ? items.filter(function (item) {
-    return [item.nama, item.kelompok, item.bidang, item.jabatan_upjkp, item.nama_database, item.cocok_database]
+    return [item.nama, item.kelompok, item.bidang, item.jabatan_upjkp, item.personnel_upjkp_id, item.nama_database, item.cocok_database]
       .join(' ').toLowerCase().indexOf(query) >= 0;
   }) : items;
   const filteredAssignments = query ? upjkpAssignments.filter(function (assignment) {

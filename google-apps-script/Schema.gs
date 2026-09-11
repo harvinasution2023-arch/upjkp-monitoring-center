@@ -1,6 +1,6 @@
 const APP = Object.freeze({
   NAME: 'UPJKP Monitoring Center',
-  VERSION: '2.10.1',
+  VERSION: '2.11.0',
   TIMEZONE: 'Asia/Jakarta',
   PROPERTY_DATABASE_ID: 'UPJKP_SPREADSHEET_ID',
   PROPERTY_ROOT_FOLDER_ID: 'UPJKP_ROOT_FOLDER_ID',

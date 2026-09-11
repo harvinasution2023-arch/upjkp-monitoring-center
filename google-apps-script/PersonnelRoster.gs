@@ -1,7 +1,7 @@
 const PERSONNEL_ROSTER_SOURCE_VERSION_ = '2026-09-11';
 const PERSONNEL_ROSTER_SOURCE_FILE_ = 'Nama petugas untuk kegiatan upjkp.xlsx';
 const PERSONNEL_UPJKP_SOURCE_SHEET_ = 'Sheet2';
-const PERSONNEL_UPJKP_SOURCE_VERSION_ = '2026-09-11-sheet2-v2';
+const PERSONNEL_UPJKP_SOURCE_VERSION_ = '2026-09-11-sheet2-v3';
 const PERSONNEL_UPJKP_ALIAS_TO_MASTER_ = Object.freeze({
   'chandra oktavianus debataraja': 'Chandra O. Debataraja',
   'desra syahputra': 'Desra Sahputra',
