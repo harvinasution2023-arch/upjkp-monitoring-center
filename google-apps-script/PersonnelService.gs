@@ -127,12 +127,12 @@ function importPersonnelUpjkpIfNeeded_(roster) {
   const spreadsheet = getDatabase_();
   const existing = spreadsheet.getSheetByName(PERSONNEL_UPJKP_TABLE_NAME_);
   const existingRows = existing && existing.getLastRow() > 1 ? rowsFromSheet_(existing, true) : [];
-  const sourceIds = PERSONNEL_UPJKP_SOURCE_.map(function (source) { return source.assignment_id; });
+  const sourceIds = PERSONNEL_UPJKP_SOURCE_ORDERED_.map(function (source) { return source.assignment_id; });
   const currentIds = existingRows.map(function (row) { return String(row.assignment_id || ''); });
   const currentVersion = existingRows.length && existingRows.every(function (row) {
     return String(row.sumber_versi || '') === PERSONNEL_UPJKP_SOURCE_VERSION_;
   });
-  const complete = existingRows.length === PERSONNEL_UPJKP_SOURCE_.length && currentVersion && sourceIds.every(function (id) {
+  const complete = existingRows.length === PERSONNEL_UPJKP_SOURCE_ORDERED_.length && currentVersion && sourceIds.every(function (id) {
     return currentIds.indexOf(id) >= 0;
   });
   if (complete) {
@@ -159,12 +159,12 @@ function importPersonnelUpjkpIfNeeded_(roster) {
       if (id) rowById[id] = index + 2;
     });
     const timestamp = nowIso_();
-    const records = PERSONNEL_UPJKP_SOURCE_.map(function (source) {
+    const records = PERSONNEL_UPJKP_SOURCE_ORDERED_.map(function (source, index) {
       const reference = personnelUpjkpReference_(roster, source.nama);
       const person = reference.person || {};
       return {
         assignment_id: source.assignment_id,
-        personnel_upjkp_id: 'UPJKP-PER-' + String(PERSONNEL_UPJKP_SOURCE_.indexOf(source) + 1).padStart(3, '0'),
+        personnel_upjkp_id: 'UPJKP-PER-' + String(index + 1).padStart(3, '0'),
         nama_sheet2: source.nama,
         jabatan: source.jabatan,
         nama_normalisasi: personnelNormalizeName_(source.nama),

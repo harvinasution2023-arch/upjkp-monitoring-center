@@ -136,6 +136,8 @@ if (upjkpReference.status !== 'COCOK' || upjkpReference.person.personnel_id !== 
 serverContext.upjkpAliasRosterFixture = [{ personnel_id: 'PET-0002', nama: 'Chandra O. Debataraja', nama_normalisasi: 'chandra o debataraja' }];
 const upjkpAliasReference = vm.runInContext("personnelUpjkpReference_(upjkpAliasRosterFixture, 'Chandra Oktavianus Debataraja')", serverContext);
 if (upjkpAliasReference.status !== 'COCOK' || upjkpAliasReference.person.nama !== 'Chandra O. Debataraja') throw new Error('Alias nama Sheet2 belum diarahkan ke nama MASTER_PETUGAS');
+const orderedUpjkp = vm.runInContext('PERSONNEL_UPJKP_SOURCE_ORDERED_', serverContext);
+if (orderedUpjkp.length !== 22 || orderedUpjkp[1].nama !== 'Muhayat' || orderedUpjkp[1].assignment_id !== 'UPJKP-002' || orderedUpjkp[21].assignment_id !== 'UPJKP-022') throw new Error('Urutan ID personel UPJKP tidak konsisten');
 for (const token of ['MASTER_PETUGAS_UPJKP', 'PERSONNEL_UPJKP_SOURCE_SHEET_', 'personnel_upjkp_id', 'UPJKP-PER-', 'status_kecocokan', 'Pemetaan Subbagian UPJKP', 'renderPersonnelRecapV2']) {
   if (!source.includes(token) && !fs.readFileSync(path.join(root, 'Modules.html'), 'utf8').includes(token) && !fs.readFileSync(path.join(root, 'PersonnelService.gs'), 'utf8').includes(token)) throw new Error(`Pemetaan Sheet2 belum lengkap: ${token}`);
 }

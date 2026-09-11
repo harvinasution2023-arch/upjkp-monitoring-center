@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-11 - v2.12.0
+
+- Menambahkan Muhayat sebagai **Staff Ahli UPJKP** pada ID `UPJKP-PER-002`.
+- Mengurutkan ulang ID personel UPJKP setelah penambahan Muhayat sampai `UPJKP-PER-022`.
+- Total personel khusus UPJKP menjadi 22 orang.
+- Deployment produksi diperbarui ke **@93** (Apps Script version **93**).
+
 ## 2026-09-11 - v2.11.0
 
 - Menambahkan ID personel khusus Subbagian UPJKP pada `MASTER_PETUGAS_UPJKP` dengan format `UPJKP-PER-001` sampai `UPJKP-PER-021`.
