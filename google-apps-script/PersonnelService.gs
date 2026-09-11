@@ -1,7 +1,12 @@
 const PERSONNEL_TABLE_NAME_ = 'MASTER_PETUGAS';
+const PERSONNEL_UPJKP_TABLE_NAME_ = 'MASTER_PETUGAS_UPJKP';
 const PERSONNEL_TABLE_HEADERS_ = Object.freeze([
   'personnel_id', 'nama', 'kelompok', 'bidang', 'nama_normalisasi',
   'status_aktif', 'sumber_file', 'sumber_versi', 'created_at', 'updated_at', 'archived_at',
+]);
+const PERSONNEL_UPJKP_TABLE_HEADERS_ = Object.freeze([
+  'assignment_id', 'nama_sheet2', 'jabatan', 'nama_normalisasi', 'personnel_id', 'nama_master',
+  'status_kecocokan', 'sumber_file', 'sumber_sheet', 'sumber_versi', 'created_at', 'updated_at', 'archived_at',
 ]);
 
 const PERSONNEL_DEGREE_TOKENS_ = Object.freeze({
@@ -52,6 +57,22 @@ function ensurePersonnelRosterSheet_(spreadsheet) {
   return sheet;
 }
 
+function ensurePersonnelUpjkpSheet_(spreadsheet) {
+  let sheet = spreadsheet.getSheetByName(PERSONNEL_UPJKP_TABLE_NAME_);
+  if (!sheet) sheet = spreadsheet.insertSheet(PERSONNEL_UPJKP_TABLE_NAME_);
+  const existing = getHeaders_(sheet);
+  if (!existing.length) {
+    sheet.getRange(1, 1, 1, PERSONNEL_UPJKP_TABLE_HEADERS_.length).setValues([PERSONNEL_UPJKP_TABLE_HEADERS_]);
+  } else {
+    const missing = PERSONNEL_UPJKP_TABLE_HEADERS_.filter(function (header) {
+      return existing.indexOf(header) < 0;
+    });
+    if (missing.length) sheet.getRange(1, sheet.getLastColumn() + 1, 1, missing.length).setValues([missing]);
+  }
+  formatSheet_(sheet);
+  return sheet;
+}
+
 function importPersonnelRosterIfNeeded_() {
   const spreadsheet = getDatabase_();
   const existing = spreadsheet.getSheetByName(PERSONNEL_TABLE_NAME_);
@@ -89,6 +110,92 @@ function importPersonnelRosterIfNeeded_() {
   }).result;
 }
 
+function personnelUpjkpReference_(roster, rawName) {
+  const key = personnelNormalizeName_(rawName);
+  const matches = roster.filter(function (row) {
+    return personnelNormalizeName_(row.nama_normalisasi || row.nama) === key;
+  });
+  return {
+    person: matches.length === 1 ? matches[0] : null,
+    status: matches.length === 1 ? 'COCOK' : matches.length > 1 ? 'GANDA' : 'PERLU VERIFIKASI',
+  };
+}
+
+function importPersonnelUpjkpIfNeeded_(roster) {
+  const spreadsheet = getDatabase_();
+  const existing = spreadsheet.getSheetByName(PERSONNEL_UPJKP_TABLE_NAME_);
+  const existingRows = existing && existing.getLastRow() > 1 ? rowsFromSheet_(existing, true) : [];
+  const sourceIds = PERSONNEL_UPJKP_SOURCE_.map(function (source) { return source.assignment_id; });
+  const currentIds = existingRows.map(function (row) { return String(row.assignment_id || ''); });
+  const currentVersion = existingRows.length && existingRows.every(function (row) {
+    return String(row.sumber_versi || '') === PERSONNEL_UPJKP_SOURCE_VERSION_;
+  });
+  const complete = existingRows.length === PERSONNEL_UPJKP_SOURCE_.length && currentVersion && sourceIds.every(function (id) {
+    return currentIds.indexOf(id) >= 0;
+  });
+  if (complete) {
+    return {
+      imported: false, count: existingRows.length,
+      matched: existingRows.filter(function (row) { return row.status_kecocokan === 'COCOK'; }).length,
+      unmatched: existingRows.filter(function (row) { return row.status_kecocokan !== 'COCOK'; }).length,
+      version: PERSONNEL_UPJKP_SOURCE_VERSION_, sheet: PERSONNEL_UPJKP_SOURCE_SHEET_,
+    };
+  }
+
+  return withWriteTransaction_({
+    action: 'import_personnel_upjkp', tableName: PERSONNEL_UPJKP_TABLE_NAME_,
+    recordId: PERSONNEL_ROSTER_SOURCE_FILE_, reason: 'Import pemetaan petugas Subbagian UPJKP dari Sheet2',
+  }, function (target) {
+    const sheet = ensurePersonnelUpjkpSheet_(target);
+    const headers = getHeaders_(sheet);
+    const existingValues = sheet.getLastRow() > 1
+      ? sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues()
+      : [];
+    const rowById = {};
+    existingValues.forEach(function (values, index) {
+      const id = String(values[headers.indexOf('assignment_id')] || '');
+      if (id) rowById[id] = index + 2;
+    });
+    const timestamp = nowIso_();
+    const records = PERSONNEL_UPJKP_SOURCE_.map(function (source) {
+      const reference = personnelUpjkpReference_(roster, source.nama);
+      const person = reference.person || {};
+      return {
+        assignment_id: source.assignment_id,
+        nama_sheet2: source.nama,
+        jabatan: source.jabatan,
+        nama_normalisasi: personnelNormalizeName_(source.nama),
+        personnel_id: person.personnel_id || '',
+        nama_master: person.nama || '',
+        status_kecocokan: reference.status,
+        sumber_file: PERSONNEL_ROSTER_SOURCE_FILE_,
+        sumber_sheet: PERSONNEL_UPJKP_SOURCE_SHEET_,
+        sumber_versi: PERSONNEL_UPJKP_SOURCE_VERSION_,
+        created_at: timestamp,
+        updated_at: timestamp,
+        archived_at: '',
+      };
+    });
+    const updates = [];
+    const inserts = [];
+    records.forEach(function (record) {
+      const values = headers.map(function (header) { return record[header] === undefined ? '' : record[header]; });
+      if (rowById[record.assignment_id]) updates.push({ row: rowById[record.assignment_id], values: values });
+      else inserts.push(values);
+    });
+    updates.forEach(function (update) {
+      sheet.getRange(update.row, 1, 1, headers.length).setValues([update.values]);
+    });
+    if (inserts.length) sheet.getRange(sheet.getLastRow() + 1, 1, inserts.length, headers.length).setValues(inserts);
+    return {
+      imported: true, count: records.length,
+      matched: records.filter(function (record) { return record.status_kecocokan === 'COCOK'; }).length,
+      unmatched: records.filter(function (record) { return record.status_kecocokan !== 'COCOK'; }).length,
+      version: PERSONNEL_UPJKP_SOURCE_VERSION_, sheet: PERSONNEL_UPJKP_SOURCE_SHEET_,
+    };
+  }).result;
+}
+
 function personnelAddInvolvement_(peopleByKey, involvement, rawName, activityId, category) {
   const key = personnelNormalizeName_(rawName);
   const person = peopleByKey[key];
@@ -104,6 +211,8 @@ function getPersonnelRecapInternal_(options) {
   options = options || {};
   const importState = importPersonnelRosterIfNeeded_();
   const roster = getRows_(PERSONNEL_TABLE_NAME_, false);
+  const upjkpImportState = importPersonnelUpjkpIfNeeded_(roster);
+  const upjkpAssignments = getRows_(PERSONNEL_UPJKP_TABLE_NAME_, false);
   const peopleByKey = {};
   const people = [];
   roster.forEach(function (row) {
@@ -122,6 +231,14 @@ function getPersonnelRecapInternal_(options) {
   const involvement = {};
   people.forEach(function (person) {
     involvement[person.personnel_id] = { BT: {}, RP: {}, TR: {}, nama_database: [] };
+  });
+
+  const assignmentsByPersonnelId = {};
+  upjkpAssignments.forEach(function (assignment) {
+    const personnelId = String(assignment.personnel_id || '');
+    if (!personnelId) return;
+    if (!assignmentsByPersonnelId[personnelId]) assignmentsByPersonnelId[personnelId] = [];
+    assignmentsByPersonnelId[personnelId].push(assignment);
   });
 
   const activities = {};
@@ -155,6 +272,7 @@ function getPersonnelRecapInternal_(options) {
 
   const items = people.map(function (person) {
     const item = involvement[person.personnel_id] || { BT: {}, RP: {}, TR: {}, nama_database: [] };
+    const assignments = assignmentsByPersonnelId[person.personnel_id] || [];
     const bt = Object.keys(item.BT).length;
     const rp = Object.keys(item.RP).length;
     const tr = Object.keys(item.TR).length;
@@ -163,6 +281,7 @@ function getPersonnelRecapInternal_(options) {
       nama: person.nama,
       kelompok: person.kelompok,
       bidang: person.bidang,
+      jabatan_upjkp: assignments.map(function (assignment) { return assignment.jabatan; }).filter(Boolean).join(' | '),
       nama_database: item.nama_database.join(' | '),
       cocok_database: item.nama_database.length ? 'COCOK' : 'BELUM DITEMUKAN',
       BT: bt, RP: rp, TR: tr, total: bt + rp + tr,
@@ -194,11 +313,27 @@ function getPersonnelRecapInternal_(options) {
 
   const query = String(options.query || '').trim().toLowerCase();
   const filtered = query ? items.filter(function (item) {
-    return [item.nama, item.kelompok, item.bidang, item.nama_database, item.cocok_database]
+    return [item.nama, item.kelompok, item.bidang, item.jabatan_upjkp, item.nama_database, item.cocok_database]
       .join(' ').toLowerCase().indexOf(query) >= 0;
   }) : items;
+  const filteredAssignments = query ? upjkpAssignments.filter(function (assignment) {
+    return [assignment.nama_sheet2, assignment.nama_master, assignment.jabatan, assignment.status_kecocokan]
+      .join(' ').toLowerCase().indexOf(query) >= 0;
+  }) : upjkpAssignments;
+  const upjkpMatched = upjkpAssignments.filter(function (assignment) {
+    return assignment.status_kecocokan === 'COCOK';
+  }).length;
   return success_({
-    items: filtered, total: filtered.length, summary: summary,
-    source: { file: PERSONNEL_ROSTER_SOURCE_FILE_, version: PERSONNEL_ROSTER_SOURCE_VERSION_, import: importState },
+    items: filtered, total: filtered.length, summary: Object.assign(summary, {
+      upjkp_assignments: upjkpAssignments.length,
+      upjkp_matched: upjkpMatched,
+      upjkp_unmatched: upjkpAssignments.length - upjkpMatched,
+    }),
+    assignments: filteredAssignments,
+    source: {
+      file: PERSONNEL_ROSTER_SOURCE_FILE_, version: PERSONNEL_ROSTER_SOURCE_VERSION_, import: importState,
+      sheet: PERSONNEL_UPJKP_SOURCE_SHEET_, assignmentVersion: PERSONNEL_UPJKP_SOURCE_VERSION_,
+      assignmentImport: upjkpImportState,
+    },
   });
 }

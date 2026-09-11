@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-11 - v2.10.0
+
+- Membaca data nama dan jabatan dari `Sheet2` pada `Nama petugas untuk kegiatan upjkp.xlsx`.
+- Menambahkan tabel referensi `MASTER_PETUGAS_UPJKP` di Google Sheet Master dengan 21 pemetaan Subbagian UPJKP.
+- Mencocokkan nama dengan normalisasi gelar, tanda baca, dan huruf besar-kecil; 14 data cocok dan 7 data ditandai **PERLU VERIFIKASI**.
+- Menampilkan status pemetaan Sheet2, nama master, jabatan, dan `personnel_id` pada menu **Rekap Petugas**.
+- Deployment produksi diperbarui ke **@90** (Apps Script version **90**).
+
 ## 2026-09-11 - v2.9.0
 
 - Mengimpor daftar petugas dari `Nama petugas untuk kegiatan upjkp.xlsx` ke sheet referensi `MASTER_PETUGAS` pada Google Sheet Master.

@@ -130,6 +130,12 @@ if (!vm.runInContext("moduleFilterMatches_(newBtReportFilterFixture, { workflow:
 if (vm.runInContext("moduleFilterMatches_(trainingReportFilterFixture, { workflow: 'BT', subbagian: 'BT' }, 'reports')", serverContext)) throw new Error('Filter BT menarik laporan Pelatihan');
 if (vm.runInContext("personnelNormalizeName_('Dr. Edy Suprianto, M.Si.')", serverContext) !== vm.runInContext("personnelNormalizeName_('Edy Suprianto')", serverContext)) throw new Error('Normalisasi gelar nama petugas tidak konsisten');
 if (vm.runInContext("personnelNormalizeName_('M. Yusuf Muslim')", serverContext) !== vm.runInContext("personnelNormalizeName_('M Yusuf Muslim')", serverContext)) throw new Error('Normalisasi format nama petugas tidak konsisten');
+serverContext.upjkpRosterFixture = [{ personnel_id: 'PET-0001', nama: 'Agus Eko Prasetyo, M.Si', nama_normalisasi: 'agus eko prasetyo m si' }];
+const upjkpReference = vm.runInContext("personnelUpjkpReference_(upjkpRosterFixture, 'Agus Eko Prasetyo')", serverContext);
+if (upjkpReference.status !== 'COCOK' || upjkpReference.person.personnel_id !== 'PET-0001') throw new Error('Pemetaan Sheet2 dengan gelar nama tidak konsisten');
+for (const token of ['MASTER_PETUGAS_UPJKP', 'PERSONNEL_UPJKP_SOURCE_SHEET_', 'status_kecocokan', 'Pemetaan Subbagian UPJKP', 'renderPersonnelRecapV2']) {
+  if (!source.includes(token) && !fs.readFileSync(path.join(root, 'Modules.html'), 'utf8').includes(token) && !fs.readFileSync(path.join(root, 'PersonnelService.gs'), 'utf8').includes(token)) throw new Error(`Pemetaan Sheet2 belum lengkap: ${token}`);
+}
 for (const section of ['Empat Subbagian UPJKP', 'Perlu Perhatian', 'Pendapatan vs RKAP', 'Laporan Terbaru', 'Kegiatan Pelatihan Mendatang']) {
   if (!dashboard.includes(section)) throw new Error(`Bagian dashboard hilang: ${section}`);
 }

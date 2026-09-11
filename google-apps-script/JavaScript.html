@@ -109,7 +109,7 @@ async function render() {
   try {
     switch(state.view) {
       case 'dashboard': renderDashboard(state.dashboard); break;
-      case 'personnel': await renderPersonnelRecap(); break;
+      case 'personnel': await renderPersonnelRecapV2(); break;
       case 'rpjid': await renderUnit('RPJID'); break;
       case 'bt': await renderUnit('BT'); break;
       case 'plt': await renderUnit('PLT'); break;
