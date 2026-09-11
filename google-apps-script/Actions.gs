@@ -205,6 +205,121 @@ function getReportActionData(reportId) {
   return success_({ report: reportProgress_(report), histories: histories });
 }
 
+function reportCheckpointSpec_(value) {
+  const checkpoint = actionText_(value).toUpperCase();
+  const specs = {
+    DRAFT: { order: 1, label: 'Draft masuk' },
+    'KOREKTOR 1': { order: 2, label: 'Korektor 1' },
+    'KOREKTOR 2': { order: 3, label: 'Korektor 2' },
+    'CETAK 1': { order: 4, label: 'Revisi / Cetak 1' },
+    'KOREKTOR FINAL': { order: 5, label: 'Korektor final' },
+    NET: { order: 6, label: 'Selesai / NET' },
+  };
+  if (!specs[checkpoint]) throw new Error('Checkpoint tidak dikenal. Pilih salah satu dari enam checkpoint laporan.');
+  return Object.assign({ checkpoint: checkpoint }, specs[checkpoint]);
+}
+
+function reportActionMergeNote_(existing, addition) {
+  const parts = actionText_(existing).split('|').map(function (part) { return part.trim(); }).filter(Boolean);
+  if (addition && parts.indexOf(addition) < 0) parts.push(addition);
+  return parts.join(' | ');
+}
+
+function updateReportCheckpoint(payload) {
+  payload = payload || {};
+  const reportId = actionText_(payload.report_id);
+  if (!reportId) throw new Error('ID laporan wajib diisi.');
+  const spec = reportCheckpointSpec_(payload.checkpoint);
+  let summary = null;
+  const transaction = withWriteTransaction_({
+    actor: currentUser_(), action: 'update_report_checkpoint', tableName: 'MONITORING_LAPORAN', recordId: reportId,
+    reason: 'Memperbarui enam checkpoint laporan melalui tindakan pada monitoring laporan',
+  }, function (spreadsheet) {
+    const reportSheet = spreadsheet.getSheetByName('MONITORING_LAPORAN');
+    const reportRow = findRow_(reportSheet, 'report_id', reportId);
+    if (!reportRow) throw new Error('Laporan tidak ditemukan atau sudah diarsipkan.');
+    const reportHeaders = getHeaders_(reportSheet);
+    const currentReport = getRows_('MONITORING_LAPORAN', false).find(function (row) { return String(row.report_id) === reportId; }) || {};
+    const patch = { checkpoint_terakhir: spec.checkpoint, updated_at: nowIso_(), status: spec.checkpoint === 'NET' ? 'NET' : 'PROSES' };
+    let stageDate = '';
+    let person = '';
+    let historyNote = 'ACTION_CHECKPOINT_' + spec.order;
+
+    if (spec.checkpoint === 'DRAFT') {
+      stageDate = dateIso_(payload.tanggal_masuk);
+      person = actionText_(payload.pic);
+      if (!stageDate) throw new Error('Tanggal masuk checkpoint 1 wajib diisi.');
+      if (!person) throw new Error('PIC checkpoint 1 wajib diisi.');
+      patch.tanggal_draft_masuk = stageDate;
+      patch.tanggal_checkpoint = stageDate;
+      patch.pic = person;
+    } else if (spec.checkpoint === 'KOREKTOR 1') {
+      stageDate = dateIso_(payload.tanggal_masuk);
+      person = actionText_(payload.korektor_1);
+      if (!stageDate) throw new Error('Tanggal masuk korektor 1 wajib diisi.');
+      if (!person) throw new Error('Nama korektor 1 wajib diisi.');
+      patch.tanggal_checkpoint = stageDate;
+      patch.korektor_terakhir = person;
+    } else if (spec.checkpoint === 'KOREKTOR 2') {
+      stageDate = dateIso_(payload.tanggal_masuk);
+      person = actionText_(payload.korektor_2);
+      if (!stageDate) throw new Error('Tanggal masuk korektor 2 wajib diisi.');
+      if (!person) throw new Error('Nama korektor 2 wajib diisi.');
+      patch.tanggal_checkpoint = stageDate;
+      patch.korektor_terakhir = person;
+    } else if (spec.checkpoint === 'CETAK 1') {
+      stageDate = dateIso_(payload.tanggal_revisi_masuk);
+      person = actionText_(payload.pelaksana_revisi);
+      const revision = actionText_(payload.keterangan_revisi);
+      if (!stageDate) throw new Error('Tanggal masuk revisi checkpoint 4 wajib diisi.');
+      if (!person) throw new Error('Nama pelaksana revisi wajib diisi.');
+      if (!revision) throw new Error('Keterangan revisi wajib diisi.');
+      patch.tanggal_revisi = stageDate;
+      patch.tanggal_checkpoint = stageDate;
+      patch.catatan = reportActionMergeNote_(currentReport.catatan, 'REVISI: ' + revision);
+      historyNote = 'REVISI: ' + revision;
+    } else if (spec.checkpoint === 'KOREKTOR FINAL') {
+      stageDate = dateIso_(payload.tanggal_final_laporan);
+      person = actionText_(payload.korektor_final);
+      if (!stageDate) throw new Error('Tanggal final laporan wajib diisi.');
+      if (!person) throw new Error('Nama korektor final wajib diisi.');
+      patch.tanggal_checkpoint = stageDate;
+      patch.korektor_terakhir = person;
+    } else if (spec.checkpoint === 'NET') {
+      stageDate = dateIso_(payload.tanggal_selesai);
+      if (!stageDate) throw new Error('Tanggal selesai laporan wajib diisi.');
+      patch.tanggal_net = stageDate;
+      patch.tanggal_checkpoint = stageDate;
+      historyNote = 'ACTION_CHECKPOINT_6_SELESAI';
+    }
+
+    Object.keys(patch).forEach(function (field) {
+      const column = reportHeaders.indexOf(field);
+      if (column >= 0) reportSheet.getRange(reportRow, column + 1).setValue(patch[field]);
+    });
+
+    const historyTable = recommendationMemoryTable_(spreadsheet.getSheetByName('HISTORI_LAPORAN'), 'history_id');
+    const historyId = reportId + '-' + idSafeKey_(spec.checkpoint);
+    const currentHistory = historyTable.get(historyId) || {};
+    historyTable.upsert(historyId, {
+      history_id: historyId,
+      report_id: reportId,
+      checkpoint: spec.checkpoint,
+      urutan: spec.order,
+      korektor: person || currentHistory.korektor || '',
+      tanggal_masuk: stageDate,
+      tanggal_selesai: spec.checkpoint === 'NET' ? stageDate : (currentHistory.tanggal_selesai || ''),
+      catatan: historyNote,
+      created_at: currentHistory.created_at || nowIso_(),
+      created_by: currentHistory.created_by || currentUser_(),
+    });
+    historyTable.flush();
+    summary = { reportId: reportId, checkpoint: spec.checkpoint, order: spec.order, stageDate: stageDate, person: person, historyId: historyId };
+    return summary;
+  });
+  return success_({ reportId: summary.reportId, checkpoint: summary.checkpoint, order: summary.order, stageDate: summary.stageDate, person: summary.person, historyId: summary.historyId, backupId: transaction.backupId });
+}
+
 function updateReportAction(payload) {
   payload = payload || {};
   const reportId = actionText_(payload.report_id);

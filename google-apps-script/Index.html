@@ -231,6 +231,13 @@
       <div class="modal-actions"><button class="button secondary" value="cancel">Batal</button><button class="button primary" type="submit" value="default">Simpan tindakan</button></div>
     </form>
   </dialog>
+  <dialog id="report-checkpoint-dialog">
+    <form id="report-checkpoint-form" method="dialog">
+      <header class="modal-head"><div><span class="section-kicker">CHECKPOINT LAPORAN</span><h2 data-role="report-checkpoint-title">Perbarui checkpoint</h2><p data-role="report-checkpoint-summary">Isi data sesuai tahap laporan yang dipilih.</p></div><button class="top-icon" value="cancel" aria-label="Tutup"><svg><use href="#i-close"/></svg></button></header>
+      <div class="formgrid" data-role="report-checkpoint-fields"></div>
+      <div class="modal-actions"><button class="button secondary" value="cancel">Batal</button><button class="button primary" type="submit" value="default">Simpan checkpoint</button></div>
+    </form>
+  </dialog>
   <div id="toasts" aria-live="polite"></div>
   <?!= include('Components'); ?>
   <?!= include('Dashboard'); ?>

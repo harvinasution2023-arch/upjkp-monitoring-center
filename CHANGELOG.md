@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-09-11 - v2.8.0
+
+- Menambahkan tindakan checkpoint pada setiap monitoring laporan.
+- Checkpoint 1 menyimpan tanggal masuk dan PIC; checkpoint 2/3 menyimpan nama korektor dan tanggal masuk.
+- Checkpoint 4 menyimpan keterangan revisi, tanggal masuk revisi, dan nama pelaksana.
+- Checkpoint 5 menyimpan nama korektor final dan tanggal final laporan; checkpoint 6 menandai laporan selesai/NET.
+- Setiap pembaruan checkpoint memakai transaction lock, backup, audit log, dan histori laporan tanpa duplikasi.
+- Deployment produksi final diperbarui ke **@86** (Apps Script version **85**) dengan label checkpoint 1 “Tanggal masuk korektor” dan “PIC”.
+
 ## 2026-09-11 - v2.7.1
 
 - Menambahkan tindakan pemeliharaan **Perbaiki Kategori BT** pada Import / Export.

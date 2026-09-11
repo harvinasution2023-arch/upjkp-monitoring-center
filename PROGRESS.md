@@ -3,10 +3,10 @@
 ## Status terakhir
 
 - Status: **Berjalan**
-- Deployment aktif: **@82**
+- Deployment aktif: **@86**
 - URL aplikasi: `https://script.google.com/macros/s/AKfycbxT0gids44DaWESXxIDj6Mrjc146qhsqoq-4b-605j3bLrSfjyCNLELdbIm_FN0fJP-6A/exec`
 - Branch GitHub: `main`
-- Versi aplikasi: **v2.7.1**
+- Versi aplikasi: **v2.8.0**
 
 ## Sudah selesai
 
@@ -84,6 +84,10 @@
 - Pada **11 September 2026**, dua kegiatan sumber Administrasi berhasil dikoreksi dan disinkronkan ke database master sebagai `BT-N-70` (`FS.lahan`) dan `BT-N-75` (`Ev.Prod`); laporan aktif menjadi `LAP-BT-N-70` dan `LAP-BT-N-75`, dengan relasi surat dan tim terverifikasi ke ID BT.
 - Database master Google Sheet berhasil diverifikasi melalui sesi Chrome pemilik dengan status **Saved to Drive**; baris RP lama tetap tersimpan sebagai arsip untuk menjaga histori.
 - Kode v2.7.1 berhasil dibuat sebagai Apps Script version **81** dan deployment produksi aktif sebagai **@82**. Dashboard dikembalikan ke Chrome yang sedang berjalan tanpa memilih profil tertentu.
+- Kode v2.8.0 menambahkan tindakan enam checkpoint pada setiap monitoring laporan: Draft/PIC, Korektor 1, Korektor 2, Revisi/Cetak 1, Korektor Final, dan Selesai/NET.
+- Tindakan checkpoint tersedia pada setiap baris Monitoring Laporan dan pada detail laporan; field yang tampil menyesuaikan checkpoint yang dipilih.
+- Setiap checkpoint menyimpan perubahan laporan dan histori dengan transaction lock, backup, audit trail, dan satu histori per checkpoint.
+- Kode v2.8.0 berhasil dibuat sebagai Apps Script version **85** dan deployment produksi aktif sebagai **@86**; kolom Tindakan terverifikasi tampil pada halaman Monitoring Laporan melalui Chrome aktif.
 - Percobaan `clasp run syncAdministrasi --params "[{}]"` setelah deployment final **@72** pada **10 September 2026 pukul 12:20 WIB** ditolak oleh Execution API (`Unable to run script function`), sehingga migrasi data aktual perlu dipicu dari akun pemilik lewat **Administrasi -> Import / Export -> Sinkronkan Administrasi** atau **Sinkronkan Semua Sumber**.
 - Dashboard produksi dibuka di Chrome Profile 2 pada halaman **Import / Export** agar sinkronisasi Administrasi dapat dijalankan dari UI pemilik.
 - Verifikasi endpoint `?status=rp` dari terminal pada **10 September 2026** dialihkan ke halaman login Google karena akses web app masih `MYSELF`; deployment dikonfirmasi melalui `clasp deployments`.
@@ -91,7 +95,7 @@
 
 ## Checkpoint untuk dilanjutkan
 
-- Checkpoint aktif: koreksi kategori BT v2.7.1 selesai dan terverifikasi di database master; deployment produksi menggunakan URL yang sama pada **@82 / Apps Script version 81**. Dashboard terakhir dibuka pada Chrome yang sedang berjalan di `#/dashboard`.
+- Checkpoint aktif: koreksi kategori BT v2.7.1 selesai dan fitur tindakan enam checkpoint v2.8.0 sudah dirilis; deployment produksi menggunakan URL yang sama pada **@86 / Apps Script version 85**. Dashboard/Monitoring Laporan terakhir dibuka pada Chrome yang sedang berjalan.
 - Verifikasi terakhir: `node .\tests\gas_static_test.js` lulus dan `python -m unittest discover -s .\tests -p "test_*.py"` lulus **5 dari 5 test**.
 - Fitur v2.7.0 yang siap digunakan: indikator kelengkapan, menu Tindakan kegiatan/surat, menu Lengkapi laporan, menu Atur korektor, histori korektor tanpa duplikasi, dan kolom Link Laporan NET.
 - Checkpoint terbaru disimpan pada **11 September 2026** setelah deployment **@82 / v2.7.1** dan koreksi dua kegiatan `FS.lahan`/`Ev.Prod` dari RP ke BT di sumber Administrasi serta database master.
@@ -100,6 +104,7 @@
 - Checkpoint ini disimpan pada **9 September 2026 pukul 18:45 WIB** setelah dashboard produksi dibuka ulang dari Chrome Profile 2.
 - Checkpoint terbaru dibuat pada **9 September 2026** setelah deployment **@66 / v2.6.5** untuk menyeragamkan ID aktif menjadi `RP-*`, `BT-*`, dan `TR-*`.
 - Kondisi kerja terakhir: dashboard produksi aktif pada v2.7.1; menu **Perbaiki Kategori BT** sudah dijalankan dan master Google Sheet sudah terbarui. File Excel lokal tetap merupakan snapshot/manual, bukan database yang tersinkron otomatis.
+- Tindak lanjut aktif: gunakan tindakan checkpoint pada masing-masing laporan; pengisian data aktual dilakukan oleh operator sesuai tahap laporan.
 - Perubahan kode dan dokumentasi v2.7.0 telah dirilis ke Apps Script dan dicatat di GitHub.
 - Pusat input/sinkronisasi berada di **Administrasi → Import / Export → Sinkronkan Semua Sumber**.
 - Jangan mengaktifkan kembali sumber lama `1tNZmCWPzHOB69yEwNOJTijwQxCyJkzMnilh79T4FFtc`.

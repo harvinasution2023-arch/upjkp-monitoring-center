@@ -15,6 +15,8 @@ const trainingCompletionDialog=document.querySelector('#training-completion-dial
 const trainingCompletionForm=document.querySelector('#training-completion-form');
 const reportActionDialog=document.querySelector('#report-action-dialog');
 const reportActionForm=document.querySelector('#report-action-form');
+const reportCheckpointDialog=document.querySelector('#report-checkpoint-dialog');
+const reportCheckpointForm=document.querySelector('#report-checkpoint-form');
 
 const unitMeta={
   RPJID:{label:'Rekomendasi Pemupukan & Jasa Informasi Digital',short:'Rekomendasi & JID',cls:'rpjid',view:'rpjid',icon:'flask'},
@@ -226,6 +228,40 @@ async function openReportAction(reportId,mode='general') {
   reportActionDialog.showModal();
 }
 
+const reportCheckpointMeta={
+  'DRAFT':{title:'Checkpoint 1 · Tanggal masuk & PIC',summary:'Catat tanggal masuk korektor dan PIC yang menangani laporan.',fields:[['tanggal_masuk','Tanggal masuk korektor','date','Tanggal masuk korektor',true],['pic','PIC','text','Nama PIC laporan',true]]},
+  'KOREKTOR 1':{title:'Checkpoint 2 · Korektor 1',summary:'Catat nama korektor 1 dan tanggal laporan masuk ke korektor.',fields:[['korektor_1','Nama korektor 1','text','Nama korektor 1',true],['tanggal_masuk','Tanggal masuk korektor 1','date','Tanggal masuk',true]]},
+  'KOREKTOR 2':{title:'Checkpoint 3 · Korektor 2',summary:'Catat nama korektor 2 dan tanggal laporan masuk ke korektor.',fields:[['korektor_2','Nama korektor 2','text','Nama korektor 2',true],['tanggal_masuk','Tanggal masuk korektor 2','date','Tanggal masuk',true]]},
+  'CETAK 1':{title:'Checkpoint 4 · Revisi / Cetak 1',summary:'Catat keterangan revisi, tanggal masuk revisi, dan nama pelaksana.',fields:[['keterangan_revisi','Keterangan revisi','textarea','Contoh: Revisi substansi, perbaikan data, atau revisi format',true],['tanggal_revisi_masuk','Tanggal masuk revisi','date','Tanggal masuk',true],['pelaksana_revisi','Nama pelaksana revisi','text','Nama pelaksana',true]]},
+  'KOREKTOR FINAL':{title:'Checkpoint 5 · Korektor final',summary:'Catat nama korektor final dan tanggal laporan final.',fields:[['korektor_final','Nama korektor final','text','Nama korektor final',true],['tanggal_final_laporan','Tanggal final laporan','date','Tanggal final laporan',true]]},
+  'NET':{title:'Checkpoint 6 · Selesai',summary:'Tandai laporan selesai dan isi tanggal selesai/NET.',fields:[['tanggal_selesai','Tanggal selesai laporan','date','Tanggal selesai',true]]},
+};
+
+function checkpointFieldMarkup(field) {
+  const name=field[0],label=field[1],type=field[2],placeholder=field[3],required=field[4]?' required':'';
+  if(type==='textarea') return `<label class="wide">${label}<textarea name="${name}" rows="4" placeholder="${placeholder}"${required}></textarea></label>`;
+  return `<label>${label}<input name="${name}" type="${type}" placeholder="${placeholder}"${required}></label>`;
+}
+
+async function openReportCheckpoint(reportId,checkpoint) {
+  const key=String(checkpoint||'').toUpperCase(),meta=reportCheckpointMeta[key];
+  if(!meta) return;
+  const data=await callServer('getReportActionData',reportId),report=data.report||{},histories=data.histories||[],history=histories.find(item=>String(item.checkpoint||'').toUpperCase()===key)||{};
+  reportCheckpointForm.reset();
+  document.querySelector('[data-role="report-checkpoint-fields"]').innerHTML=`<input type="hidden" name="report_id"><input type="hidden" name="checkpoint">${meta.fields.map(checkpointFieldMarkup).join('')}`;
+  setActionField(reportCheckpointForm,'report_id',report.report_id||reportId);
+  setActionField(reportCheckpointForm,'checkpoint',key);
+  if(key==='DRAFT') { setActionField(reportCheckpointForm,'tanggal_masuk',history.tanggal_masuk||report.tanggal_draft_masuk); setActionField(reportCheckpointForm,'pic',report.pic||history.korektor); }
+  if(key==='KOREKTOR 1') { setActionField(reportCheckpointForm,'korektor_1',history.korektor||report.korektor_terakhir); setActionField(reportCheckpointForm,'tanggal_masuk',history.tanggal_masuk||report.tanggal_checkpoint); }
+  if(key==='KOREKTOR 2') { setActionField(reportCheckpointForm,'korektor_2',history.korektor||report.korektor_terakhir); setActionField(reportCheckpointForm,'tanggal_masuk',history.tanggal_masuk||report.tanggal_checkpoint); }
+  if(key==='CETAK 1') { setActionField(reportCheckpointForm,'keterangan_revisi',String(history.catatan||'').replace(/^REVISI:\s*/i,'')); setActionField(reportCheckpointForm,'tanggal_revisi_masuk',history.tanggal_masuk||report.tanggal_revisi); setActionField(reportCheckpointForm,'pelaksana_revisi',history.korektor); }
+  if(key==='KOREKTOR FINAL') { setActionField(reportCheckpointForm,'korektor_final',history.korektor||report.korektor_terakhir); setActionField(reportCheckpointForm,'tanggal_final_laporan',history.tanggal_masuk||report.tanggal_checkpoint); }
+  if(key==='NET') setActionField(reportCheckpointForm,'tanggal_selesai',report.tanggal_net||report.tanggal_checkpoint);
+  document.querySelector('[data-role="report-checkpoint-title"]').textContent=meta.title;
+  document.querySelector('[data-role="report-checkpoint-summary"]').textContent=`${meta.summary} · ${report.report_id||reportId}`;
+  reportCheckpointDialog.showModal();
+}
+
 async function notifications() {
   const data=await getModule('notifications');
   const active=data.items.filter(row=>!row.resolved_at).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
@@ -260,6 +296,7 @@ document.addEventListener('click',async event=>{
     else if (action==='training-complete') await openTrainingCompletion(button.dataset.id);
     else if (action==='report-action') await openReportAction(button.dataset.id);
     else if (action==='report-corrector') await openReportAction(button.dataset.id,'corrector');
+    else if (action==='report-checkpoint') await openReportCheckpoint(button.dataset.id,button.dataset.checkpoint);
     else if (action==='close-drawer') closeDrawer();
     else if (action==='toggle-sidebar') toggleSidebar();
     else if (action==='help') toast('Gunakan menu kiri untuk membuka modul. Klik KPI, alert, atau baris laporan untuk melihat data terkait.');
@@ -323,7 +360,15 @@ reportActionForm.addEventListener('submit',async event=>{
   try {const result=await callServer('updateReportAction',Object.fromEntries(new FormData(reportActionForm).entries()));reportActionDialog.close();toast(`Laporan ${result.reportId} berhasil diperbarui.`);await refresh()}
   catch(error){toast(error.message,'error')}
   finally{submit.disabled=false;submit.textContent='Simpan tindakan'}
-});
+ });
+
+reportCheckpointForm.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const submit=reportCheckpointForm.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='Menyimpan...';
+  try {const result=await callServer('updateReportCheckpoint',Object.fromEntries(new FormData(reportCheckpointForm).entries()));reportCheckpointDialog.close();toast(`Checkpoint ${result.checkpoint} laporan berhasil diperbarui.`);await refresh()}
+  catch(error){toast(error.message,'error')}
+  finally{submit.disabled=false;submit.textContent='Simpan checkpoint'}
+ });
 
 window.addEventListener('hashchange',()=>{
   const requested=location.hash.replace(/^#\/?/,'');
