@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-11 - v2.10.1
+
+- Menetapkan tujuh perbedaan nama pada `Sheet2` sebagai alias orang yang sama berdasarkan konfirmasi pengguna.
+- Menggunakan nama kanonik dari `MASTER_PETUGAS` untuk `nama_master`, `personnel_id`, dan rekap keterlibatan.
+- Seluruh 21 pemetaan pada `MASTER_PETUGAS_UPJKP` sekarang berstatus **COCOK**; nama Sheet2 tetap disimpan sebagai referensi asal.
+- Deployment produksi diperbarui ke **@91** (Apps Script version **91**).
+
 ## 2026-09-11 - v2.10.0
 
 - Membaca data nama dan jabatan dari `Sheet2` pada `Nama petugas untuk kegiatan upjkp.xlsx`.

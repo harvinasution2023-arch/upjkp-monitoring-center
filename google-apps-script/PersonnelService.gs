@@ -111,7 +111,9 @@ function importPersonnelRosterIfNeeded_() {
 }
 
 function personnelUpjkpReference_(roster, rawName) {
-  const key = personnelNormalizeName_(rawName);
+  const sourceKey = personnelNormalizeName_(rawName);
+  const canonicalName = PERSONNEL_UPJKP_ALIAS_TO_MASTER_[sourceKey] || rawName;
+  const key = personnelNormalizeName_(canonicalName);
   const matches = roster.filter(function (row) {
     return personnelNormalizeName_(row.nama_normalisasi || row.nama) === key;
   });
