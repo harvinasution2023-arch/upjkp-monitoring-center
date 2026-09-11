@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-11 - v2.7.1
+
+- Menambahkan tindakan pemeliharaan **Perbaiki Kategori BT** pada Import / Export.
+- Memindahkan jenis `FS.lahan` dan `Ev.Prod` yang masih berkategori RP ke BT pada sumber Administrasi.
+- Membuat backup sumber sebelum perubahan dan menjalankan sinkronisasi resmi agar kegiatan, laporan, histori, surat, tim, dan tagihan ikut terhubung ke database master.
+- Deployment produksi diperbarui ke **@82** (Apps Script version **81**) dan hasil master diverifikasi melalui sesi Chrome pemilik.
+
 ## 2026-09-10 - v2.7.0
 
 - Daftar kegiatan dan Administrasi menampilkan indikator kelengkapan data serta menu Tindakan untuk melengkapi data kegiatan dan surat terkait.

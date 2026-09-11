@@ -534,6 +534,227 @@ function syncAdministrasiNow(options) {
 function syncAdministrasi() { return syncAdministrasiNow({ automatic: false }); }
 function syncAdministrasiFromEdit() { return syncAdministrasiNow({ automatic: true }); }
 
+function reclassifyMisfiledBtActivities() {
+  assertConfigured_();
+  const sourceId = getAdministrasiSourceId_();
+  const source = SpreadsheetApp.openById(sourceId);
+  const activitySheet = source.getSheetByName(ADM_SOURCE_MAIN_SHEET);
+  if (!activitySheet) throw new Error('Sheet ' + ADM_SOURCE_MAIN_SHEET + ' tidak ditemukan pada sumber Administrasi.');
+
+  const headers = activitySheet.getRange(1, 1, 1, activitySheet.getLastColumn()).getDisplayValues()[0];
+  const headerMap = adminHeaderMap_(headers);
+  const categoryColumn = (headerMap[adminNormalizeHeader_('Kegiatan')] || [0])[0];
+  const kindColumn = (headerMap[adminNormalizeHeader_('Jenis Kegiatan')] || [9])[0];
+  const idColumn = (headerMap[adminNormalizeHeader_('ID')] || [3])[0];
+  const values = activitySheet.getLastRow() < 2
+    ? []
+    : activitySheet.getRange(2, 1, Math.min(activitySheet.getLastRow() - 1, 10000), headers.length).getDisplayValues();
+  const targetKinds = { 'fs.lahan': true, 'ev.prod': true };
+  const changes = [];
+  values.forEach(function (row, index) {
+    const category = adminText_(row[categoryColumn]).toUpperCase();
+    const kind = adminNormalize_(row[kindColumn]);
+    if (category !== 'RP' || !targetKinds[kind]) return;
+    changes.push({ row: index + 2, sourceKey: adminText_(row[idColumn]), kind: adminText_(row[kindColumn]) });
+  });
+  let backupId = '';
+  if (changes.length) {
+    const backupFolderId = getConfiguration_().backupFolderId;
+    if (!backupFolderId) throw new Error('Folder backup belum dikonfigurasi.');
+    const stamp = Utilities.formatDate(new Date(), APP.TIMEZONE, 'yyyy-MM-dd_HHmmss');
+    backupId = DriveApp.getFileById(sourceId).makeCopy('Data base Admin backup sebelum koreksi BT ' + stamp, DriveApp.getFolderById(backupFolderId)).getId();
+    changes.forEach(function (item) { activitySheet.getRange(item.row, categoryColumn + 1).setValue('BT'); });
+    SpreadsheetApp.flush();
+  }
+
+  const refreshedHeaders = activitySheet.getRange(1, 1, 1, activitySheet.getLastColumn()).getDisplayValues()[0];
+  const refreshedHeaderMap = adminHeaderMap_(refreshedHeaders);
+  const refreshedValues = activitySheet.getLastRow() < 2
+    ? []
+    : activitySheet.getRange(2, 1, Math.min(activitySheet.getLastRow() - 1, 10000), refreshedHeaders.length).getValues();
+  const btRecords = refreshedValues.map(function (row, index) {
+    return adminActivityRecord_(row, refreshedHeaderMap, index + 2);
+  }).filter(function (record) {
+    return record && record.categoryCode === 'BT' && targetKinds[adminNormalize_(record.kind)];
+  });
+
+  const sync = syncAdministrasiNow({ automatic: false, sourceSpreadsheetId: sourceId });
+  const masterRepair = repairMisclassifiedBtMaster_(btRecords);
+  return success_({
+    changed: changes,
+    sourceBackupId: backupId,
+    sourceSpreadsheetId: sourceId,
+    sync: sync.data,
+    masterRepair: masterRepair,
+    message: changes.length
+      ? changes.length + ' kegiatan dipindahkan dari RP ke BT dan database master diperbarui.'
+      : 'Tidak ada baris sumber RP yang perlu diubah; pemeriksaan relasi database master tetap dijalankan.',
+  });
+}
+
+function repairMisclassifiedBtMaster_(sourceRecords) {
+  const candidates = (sourceRecords || []).filter(function (record) {
+    return record && record.categoryCode === 'BT' && ['fs.lahan', 'ev.prod'].indexOf(adminNormalize_(record.kind)) >= 0;
+  });
+  if (!candidates.length) return { migrated: [], referencesUpdated: 0, message: 'Tidak ada sumber BT FS.lahan/Ev.Prod untuk diperiksa.' };
+
+  let migrated = [], referencesUpdated = 0;
+  const transaction = withWriteTransaction_({
+    actor: currentUser_(),
+    action: 'repair_bt_master_category',
+    tableName: 'MULTI',
+    recordId: candidates.map(function (record) { return record.sourceKey; }).join(','),
+    reason: 'Memindahkan relasi kegiatan BT yang sebelumnya tersimpan sebagai RP',
+  }, function (master) {
+    const tableByName = {};
+    ['KEGIATAN', 'MONITORING_LAPORAN', 'HISTORI_LAPORAN', 'KORESPONDENSI', 'LOKASI_KEGIATAN', 'TIM_SPJ', 'ANALISIS_LAB', 'LAMPIRAN_DOSIS', 'TRANSAKSI_JID', 'PENAGIHAN', 'JADWAL_TENAGA_AHLI', 'DOKUMEN', 'NOTIFIKASI'].forEach(function (name) {
+      const sheet = master.getSheetByName(name);
+      if (!sheet) return;
+      const idField = name === 'KEGIATAN' ? 'activity_id'
+        : name === 'MONITORING_LAPORAN' ? 'report_id'
+          : name === 'HISTORI_LAPORAN' ? 'history_id'
+            : name === 'KORESPONDENSI' ? 'correspondence_id'
+              : name === 'LOKASI_KEGIATAN' ? 'location_id'
+                : name === 'TIM_SPJ' ? 'team_id'
+                  : name === 'ANALISIS_LAB' ? 'lab_id'
+                    : name === 'LAMPIRAN_DOSIS' ? 'dose_id'
+                      : name === 'TRANSAKSI_JID' ? 'transaction_id'
+                        : name === 'PENAGIHAN' ? 'billing_id'
+                          : name === 'JADWAL_TENAGA_AHLI' ? 'schedule_id'
+                            : name === 'DOKUMEN' ? 'document_id' : 'notification_id';
+      tableByName[name] = recommendationMemoryTable_(sheet, idField);
+    });
+    const activityTable = tableByName.KEGIATAN;
+    const reportTable = tableByName.MONITORING_LAPORAN;
+
+    function rows(table) {
+      if (!table) return [];
+      return table.rows.map(function (values) {
+        const row = {};
+        table.headers.forEach(function (header, index) { row[header] = values[index]; });
+        return row;
+      });
+    }
+    function text(value) { return adminText_(value); }
+    function same(value, expected) { return adminNormalize_(value) === adminNormalize_(expected); }
+    function containsNote(row, value) { return text(row.catatan).toLowerCase().indexOf(String(value).toLowerCase()) >= 0; }
+    function mergeRows(table, base, overlay) {
+      const merged = {};
+      table.headers.forEach(function (header) { merged[header] = base && base[header] !== undefined ? base[header] : ''; });
+      if (overlay) table.headers.forEach(function (header) {
+        if (overlay[header] !== undefined && overlay[header] !== null && overlay[header] !== '') merged[header] = overlay[header];
+      });
+      return merged;
+    }
+    function updateLinkedRows(table, field, oldId, newId) {
+      if (!table || table.headers.indexOf(field) < 0) return 0;
+      let count = 0;
+      rows(table).forEach(function (row) {
+        if (text(row[field]) !== oldId) return;
+        if (table.headers.indexOf('archived_at') >= 0 && text(row.archived_at)) return;
+        const id = text(row[table.headers[0]]);
+        if (!id) return;
+        const update = {}; update[field] = newId;
+        if (table.headers.indexOf('updated_at') >= 0) update.updated_at = nowIso_();
+        table.upsert(id, update);
+        count += 1;
+      });
+      return count;
+    }
+    function activityScore(activity, record) {
+      let score = 0;
+      if (same(activity.kategori, 'RP') || same(activity.subbagian, 'RPJID')) score += 20;
+      if (same(activity.jenis_kegiatan, record.kind)) score += 80;
+      if (same(activity.perusahaan, record.company)) score += 80;
+      if (same(activity.kebun_lokasi, record.location)) score += 50;
+      if (record.incomingNo && same(activity.no_surat_masuk, record.incomingNo)) score += 35;
+      if (record.outgoingNo && same(activity.no_surat_keluar, record.outgoingNo)) score += 35;
+      const suffix = text(record.sourceKey).match(/-(\d+)$/);
+      if (suffix && containsNote(activity, 'ADMIN_SOURCE_ID=RP-N-' + suffix[1])) score += 45;
+      return score;
+    }
+    function pickLegacyActivity(record, used) {
+      const matches = rows(activityTable).filter(function (activity) {
+        return !text(activity.archived_at)
+          && text(activity.activity_id) !== text(record.sourceKey)
+          && (same(activity.kategori, 'RP') || same(activity.subbagian, 'RPJID'))
+          && ['fs.lahan', 'ev.prod'].indexOf(adminNormalize_(activity.jenis_kegiatan)) >= 0
+          && !used[text(activity.activity_id)];
+      }).map(function (activity) { return { activity: activity, score: activityScore(activity, record) }; })
+        .filter(function (match) { return match.score >= 180; })
+        .sort(function (left, right) { return right.score - left.score; });
+      if (!matches.length) return null;
+      if (matches.length > 1 && matches[0].score === matches[1].score) return null;
+      return matches[0].activity;
+    }
+
+    const used = {};
+    candidates.forEach(function (record) {
+      const newActivityId = categorySourceId_('BT', record.sourceKey, 'BT');
+      const legacy = pickLegacyActivity(record, used);
+      if (!legacy) return;
+      const oldActivityId = text(legacy.activity_id);
+      used[oldActivityId] = true;
+      const existingActivity = activityTable.get(newActivityId);
+      let activity = mergeRows(activityTable, legacy, existingActivity);
+      activity.activity_id = newActivityId;
+      activity.display_id = newActivityId;
+      activity.subbagian = 'BT';
+      activity.kategori = 'BT';
+      activity.jenis_kegiatan = record.kind || activity.jenis_kegiatan;
+      activity.catatan = adminMergeNote_(activity.catatan, ['SOURCE_SYNC=ADM', 'ADMIN_SOURCE_ID=' + record.sourceKey, 'CATEGORY_CORRECTION=RP_TO_BT', 'MIGRATED_FROM=' + oldActivityId]);
+      activity.updated_at = nowIso_();
+      activity.archived_at = '';
+      if (!activity.created_at) activity.created_at = nowIso_();
+      activityTable.upsert(newActivityId, activity);
+      activityTable.upsert(oldActivityId, {
+        archived_at: nowIso_(),
+        updated_at: nowIso_(),
+        catatan: adminMergeNote_(legacy.catatan, ['MIGRATED_TO=' + newActivityId, 'CATEGORY_CORRECTION=RP_TO_BT']),
+      });
+
+      const oldReports = rows(reportTable).filter(function (report) { return !text(report.archived_at) && text(report.activity_id) === oldActivityId; });
+      const targetReportId = reportIdForActivity_(newActivityId);
+      const existingReport = reportTable.get(targetReportId);
+      const legacyReport = oldReports.length ? oldReports[oldReports.length - 1] : null;
+      if (legacyReport || existingReport) {
+        let report = mergeRows(reportTable, legacyReport || existingReport, existingReport);
+        report.report_id = targetReportId;
+        report.activity_id = newActivityId;
+        report.workflow = 'BT';
+        report.nama_kegiatan = record.kind || report.nama_kegiatan;
+        report.catatan = adminMergeNote_(report.catatan, ['CATEGORY_CORRECTION=RP_TO_BT', 'MIGRATED_FROM=' + (legacyReport ? legacyReport.report_id : oldActivityId)]);
+        report.updated_at = nowIso_();
+        report.archived_at = '';
+        if (!report.created_at) report.created_at = nowIso_();
+        reportTable.upsert(targetReportId, report);
+        oldReports.forEach(function (oldReport) {
+          if (text(oldReport.report_id) === targetReportId) return;
+          reportTable.upsert(oldReport.report_id, { archived_at: nowIso_(), updated_at: nowIso_(), catatan: adminMergeNote_(oldReport.catatan, ['MIGRATED_TO=' + targetReportId, 'CATEGORY_CORRECTION=RP_TO_BT']) });
+        });
+        referencesUpdated += updateLinkedRows(tableByName.HISTORI_LAPORAN, 'report_id', legacyReport ? text(legacyReport.report_id) : reportIdForActivity_(oldActivityId), targetReportId);
+      }
+
+      ['KORESPONDENSI', 'LOKASI_KEGIATAN', 'TIM_SPJ', 'ANALISIS_LAB', 'LAMPIRAN_DOSIS', 'TRANSAKSI_JID', 'JADWAL_TENAGA_AHLI', 'DOKUMEN'].forEach(function (name) {
+        referencesUpdated += updateLinkedRows(tableByName[name], 'activity_id', oldActivityId, newActivityId);
+      });
+      referencesUpdated += updateLinkedRows(tableByName.PENAGIHAN, 'source_id', oldActivityId, newActivityId);
+      if (tableByName.NOTIFIKASI) {
+        rows(tableByName.NOTIFIKASI).forEach(function (notification) {
+          if (text(notification.source_id) !== oldActivityId || text(notification.source_table).toUpperCase() !== 'KEGIATAN') return;
+          tableByName.NOTIFIKASI.upsert(text(notification.notification_id), { source_id: newActivityId });
+          referencesUpdated += 1;
+        });
+      }
+      migrated.push({ sourceKey: record.sourceKey, fromActivityId: oldActivityId, toActivityId: newActivityId, reportId: targetReportId });
+    });
+
+    Object.keys(tableByName).forEach(function (name) { tableByName[name].flush(); });
+    return { migrated: migrated, referencesUpdated: referencesUpdated };
+  });
+  return { migrated: migrated, referencesUpdated: referencesUpdated, backupId: transaction.backupId, message: migrated.length + ' relasi kegiatan RP dimigrasikan ke BT.' };
+}
+
 function connectAdministrasiSource() {
   const properties = getProperties_();
   properties.setProperty('UPJKP_ADM_SOURCE_ID', ADM_SOURCE_DEFAULT_ID);

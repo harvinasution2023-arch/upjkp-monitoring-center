@@ -400,6 +400,19 @@ document.addEventListener('click', async event=>{
 });
 
 document.addEventListener('click', async event=>{
+  const button=event.target.closest('[data-action="repair-bt-rp"]');
+  if (!button) return;
+  if (!confirm('Pindahkan jenis FS.lahan dan Ev.Prod yang masih berkategori RP ke BT, lalu sinkronkan database master?')) return;
+  button.disabled=true; const original=button.textContent; button.textContent='Memperbaiki kategori...';
+  try {
+    const result=await callServer('reclassifyMisfiledBtActivities');
+    toast(result.message, result.sync&&result.sync.errors&&result.sync.errors.length?'error':'success');
+    await refresh();
+  } catch(error){ toast(error.message,'error'); }
+  finally { button.disabled=false; button.textContent=original; }
+});
+
+document.addEventListener('click', async event=>{
   const button=event.target.closest('[data-action="import-templates"]');
   if (!button) return;
   if (!confirm('Import semua baris berisi dari workbook template ke database master? ID duplikat akan dilewati.')) return;

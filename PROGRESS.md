@@ -3,10 +3,10 @@
 ## Status terakhir
 
 - Status: **Berjalan**
-- Deployment aktif: **@74**
+- Deployment aktif: **@82**
 - URL aplikasi: `https://script.google.com/macros/s/AKfycbxT0gids44DaWESXxIDj6Mrjc146qhsqoq-4b-605j3bLrSfjyCNLELdbIm_FN0fJP-6A/exec`
 - Branch GitHub: `main`
-- Versi aplikasi: **v2.6.8**
+- Versi aplikasi: **v2.7.1**
 
 ## Sudah selesai
 
@@ -80,6 +80,10 @@
 - Kode v2.6.7 untuk ID Administrasi sebagai acuan RP/BT/TR dan kolom surat monitoring laporan dirilis pada **10 September 2026 pukul 12:02 WIB**; source berhasil `clasp push`, versi Apps Script **71** dibuat, dan deployment produksi aktif sebagai **@72**.
 - Kode v2.6.8 untuk koneksi ID Monitoring Laporan RP ke ID Administrasi RP dirilis pada **10 September 2026 pukul 14:30 WIB**; source berhasil `clasp push`, versi Apps Script **73** dibuat, dan deployment produksi aktif sebagai **@74**.
 - Kode v2.7.0 untuk menu Tindakan kelengkapan kegiatan, pembaruan korektor/checkpoint laporan, dan kolom Link Laporan NET dirilis sebagai versi Apps Script **77**; deployment produksi aktif sebagai **@78**.
+- Koreksi v2.7.1 disiapkan untuk memindahkan kegiatan `FS.lahan` dan `Ev.Prod` yang salah berkategori RP ke BT, dengan backup sumber dan sinkronisasi relasi database melalui menu **Perbaiki Kategori BT**.
+- Pada **11 September 2026**, dua kegiatan sumber Administrasi berhasil dikoreksi dan disinkronkan ke database master sebagai `BT-N-70` (`FS.lahan`) dan `BT-N-75` (`Ev.Prod`); laporan aktif menjadi `LAP-BT-N-70` dan `LAP-BT-N-75`, dengan relasi surat dan tim terverifikasi ke ID BT.
+- Database master Google Sheet berhasil diverifikasi melalui sesi Chrome pemilik dengan status **Saved to Drive**; baris RP lama tetap tersimpan sebagai arsip untuk menjaga histori.
+- Kode v2.7.1 berhasil dibuat sebagai Apps Script version **81** dan deployment produksi aktif sebagai **@82**. Dashboard dikembalikan ke Chrome yang sedang berjalan tanpa memilih profil tertentu.
 - Percobaan `clasp run syncAdministrasi --params "[{}]"` setelah deployment final **@72** pada **10 September 2026 pukul 12:20 WIB** ditolak oleh Execution API (`Unable to run script function`), sehingga migrasi data aktual perlu dipicu dari akun pemilik lewat **Administrasi -> Import / Export -> Sinkronkan Administrasi** atau **Sinkronkan Semua Sumber**.
 - Dashboard produksi dibuka di Chrome Profile 2 pada halaman **Import / Export** agar sinkronisasi Administrasi dapat dijalankan dari UI pemilik.
 - Verifikasi endpoint `?status=rp` dari terminal pada **10 September 2026** dialihkan ke halaman login Google karena akses web app masih `MYSELF`; deployment dikonfirmasi melalui `clasp deployments`.
@@ -87,15 +91,15 @@
 
 ## Checkpoint untuk dilanjutkan
 
-- Checkpoint aktif: source dan catatan progres tersimpan pada commit `a3070b1` di `origin/main` (fitur source dirilis pada `ec1920f`); deployment produksi menggunakan URL yang sama pada **@78 / Apps Script version 77**. Dashboard terakhir dibuka melalui Chrome Profile 2 pada `#/dashboard`.
+- Checkpoint aktif: koreksi kategori BT v2.7.1 selesai dan terverifikasi di database master; deployment produksi menggunakan URL yang sama pada **@82 / Apps Script version 81**. Dashboard terakhir dibuka pada Chrome yang sedang berjalan di `#/dashboard`.
 - Verifikasi terakhir: `node .\tests\gas_static_test.js` lulus dan `python -m unittest discover -s .\tests -p "test_*.py"` lulus **5 dari 5 test**.
 - Fitur v2.7.0 yang siap digunakan: indikator kelengkapan, menu Tindakan kegiatan/surat, menu Lengkapi laporan, menu Atur korektor, histori korektor tanpa duplikasi, dan kolom Link Laporan NET.
-- Checkpoint terbaru disimpan pada **10 September 2026** setelah deployment **@78 / v2.7.0** untuk menu Tindakan kelengkapan kegiatan, pembaruan korektor/checkpoint laporan, dan Link Laporan NET.
+- Checkpoint terbaru disimpan pada **11 September 2026** setelah deployment **@82 / v2.7.1** dan koreksi dua kegiatan `FS.lahan`/`Ev.Prod` dari RP ke BT di sumber Administrasi serta database master.
 - Checkpoint sebelumnya disimpan pada **10 September 2026 pukul 12:20 WIB** setelah deployment **@72 / v2.6.7** untuk ID Administrasi sebagai acuan RP/BT/TR dan kolom surat monitoring laporan.
 - Checkpoint sebelumnya disimpan pada **10 September 2026 pukul 10:36 WIB** setelah deployment **@68 / v2.6.6** untuk kompatibilitas workflow BT.
 - Checkpoint ini disimpan pada **9 September 2026 pukul 18:45 WIB** setelah dashboard produksi dibuka ulang dari Chrome Profile 2.
 - Checkpoint terbaru dibuat pada **9 September 2026** setelah deployment **@66 / v2.6.5** untuk menyeragamkan ID aktif menjadi `RP-*`, `BT-*`, dan `TR-*`.
-- Kondisi kerja terakhir: dashboard produksi aktif pada v2.7.0; daftar kegiatan/Administrasi memiliki menu Tindakan kelengkapan, sementara Monitoring Laporan memiliki menu korektor dan kolom Link Laporan NET.
+- Kondisi kerja terakhir: dashboard produksi aktif pada v2.7.1; menu **Perbaiki Kategori BT** sudah dijalankan dan master Google Sheet sudah terbarui. File Excel lokal tetap merupakan snapshot/manual, bukan database yang tersinkron otomatis.
 - Perubahan kode dan dokumentasi v2.7.0 telah dirilis ke Apps Script dan dicatat di GitHub.
 - Pusat input/sinkronisasi berada di **Administrasi → Import / Export → Sinkronkan Semua Sumber**.
 - Jangan mengaktifkan kembali sumber lama `1tNZmCWPzHOB69yEwNOJTijwQxCyJkzMnilh79T4FFtc`.
