@@ -1,7 +1,11 @@
 const PERSONNEL_ROSTER_SOURCE_VERSION_ = '2026-09-11';
 const PERSONNEL_ROSTER_SOURCE_FILE_ = 'Nama petugas untuk kegiatan upjkp.xlsx';
 const PERSONNEL_UPJKP_SOURCE_SHEET_ = 'Sheet2';
-const PERSONNEL_UPJKP_SOURCE_VERSION_ = '2026-09-11-sheet2-v4';
+const PERSONNEL_UPJKP_SOURCE_VERSION_ = '2026-09-11-sheet2-v5';
+const PERSONNEL_EXTRA_SOURCE_VERSION_ = '2026-09-11-master-extra-v1';
+const PERSONNEL_EXTRA_SOURCE_ = Object.freeze([
+  { personnel_id: 'PET-0183', nama: 'Muhayat', kelompok: 'Staff Penunjang', bidang: 'Staff Ahli UPJKP' },
+]);
 const PERSONNEL_UPJKP_ALIAS_TO_MASTER_ = Object.freeze({
   'chandra oktavianus debataraja': 'Chandra O. Debataraja',
   'desra syahputra': 'Desra Sahputra',

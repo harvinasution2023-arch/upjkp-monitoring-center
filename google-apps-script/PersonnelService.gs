@@ -110,6 +110,71 @@ function importPersonnelRosterIfNeeded_() {
   }).result;
 }
 
+function syncPersonnelExtraPeopleIfNeeded_() {
+  const spreadsheet = getDatabase_();
+  const existing = spreadsheet.getSheetByName(PERSONNEL_TABLE_NAME_);
+  const existingRows = existing && existing.getLastRow() > 1 ? rowsFromSheet_(existing, true) : [];
+  const complete = PERSONNEL_EXTRA_SOURCE_.every(function (source) {
+    return existingRows.some(function (row) {
+      return String(row.personnel_id || '') === source.personnel_id
+        && personnelNormalizeName_(row.nama_normalisasi || row.nama) === personnelNormalizeName_(source.nama)
+        && String(row.kelompok || '') === source.kelompok
+        && String(row.bidang || '') === source.bidang
+        && String(row.sumber_versi || '') === PERSONNEL_EXTRA_SOURCE_VERSION_;
+    });
+  });
+  if (complete) return { imported: false, count: PERSONNEL_EXTRA_SOURCE_.length, version: PERSONNEL_EXTRA_SOURCE_VERSION_ };
+
+  return withWriteTransaction_({
+    action: 'sync_personnel_master_extra', tableName: PERSONNEL_TABLE_NAME_,
+    recordId: PERSONNEL_EXTRA_SOURCE_[0].personnel_id,
+    reason: 'Menambahkan personel khusus UPJKP ke MASTER_PETUGAS sebagai Staff Penunjang',
+  }, function (target) {
+    const sheet = ensurePersonnelRosterSheet_(target);
+    const headers = getHeaders_(sheet);
+    const existingValues = sheet.getLastRow() > 1
+      ? sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues()
+      : [];
+    const rowById = {};
+    const rowByName = {};
+    existingValues.forEach(function (values, index) {
+      const row = {};
+      headers.forEach(function (header, headerIndex) { row[header] = values[headerIndex]; });
+      const rowNumber = index + 2;
+      if (row.personnel_id) rowById[String(row.personnel_id)] = { row: rowNumber, data: row };
+      const key = personnelNormalizeName_(row.nama_normalisasi || row.nama);
+      if (key) rowByName[key] = { row: rowNumber, data: row };
+    });
+    const timestamp = nowIso_();
+    const updates = [];
+    const inserts = [];
+    PERSONNEL_EXTRA_SOURCE_.forEach(function (source) {
+      const current = rowById[source.personnel_id] || rowByName[personnelNormalizeName_(source.nama)];
+      const record = {
+        personnel_id: source.personnel_id,
+        nama: source.nama,
+        kelompok: source.kelompok,
+        bidang: source.bidang,
+        nama_normalisasi: personnelNormalizeName_(source.nama),
+        status_aktif: 'YA',
+        sumber_file: PERSONNEL_ROSTER_SOURCE_FILE_,
+        sumber_versi: PERSONNEL_EXTRA_SOURCE_VERSION_,
+        created_at: current && current.data.created_at ? current.data.created_at : timestamp,
+        updated_at: timestamp,
+        archived_at: '',
+      };
+      const values = headers.map(function (header) { return record[header] === undefined ? '' : record[header]; });
+      if (current) updates.push({ row: current.row, values: values });
+      else inserts.push(values);
+    });
+    updates.forEach(function (update) {
+      sheet.getRange(update.row, 1, 1, headers.length).setValues([update.values]);
+    });
+    if (inserts.length) sheet.getRange(sheet.getLastRow() + 1, 1, inserts.length, headers.length).setValues(inserts);
+    return { imported: true, count: PERSONNEL_EXTRA_SOURCE_.length, version: PERSONNEL_EXTRA_SOURCE_VERSION_ };
+  }).result;
+}
+
 function personnelUpjkpReference_(roster, rawName) {
   const sourceKey = personnelNormalizeName_(rawName);
   const canonicalName = PERSONNEL_UPJKP_ALIAS_TO_MASTER_[sourceKey] || rawName;
@@ -213,6 +278,7 @@ function getPersonnelRecapInternal_(options) {
   assertConfigured_();
   options = options || {};
   const importState = importPersonnelRosterIfNeeded_();
+  const masterExtraState = syncPersonnelExtraPeopleIfNeeded_();
   const roster = getRows_(PERSONNEL_TABLE_NAME_, false);
   const upjkpImportState = importPersonnelUpjkpIfNeeded_(roster);
   const upjkpAssignments = getRows_(PERSONNEL_UPJKP_TABLE_NAME_, false);
@@ -336,6 +402,7 @@ function getPersonnelRecapInternal_(options) {
     assignments: filteredAssignments,
     source: {
       file: PERSONNEL_ROSTER_SOURCE_FILE_, version: PERSONNEL_ROSTER_SOURCE_VERSION_, import: importState,
+      masterExtra: masterExtraState,
       sheet: PERSONNEL_UPJKP_SOURCE_SHEET_, assignmentVersion: PERSONNEL_UPJKP_SOURCE_VERSION_,
       assignmentImport: upjkpImportState,
     },

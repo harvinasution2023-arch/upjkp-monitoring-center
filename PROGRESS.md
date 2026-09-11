@@ -3,10 +3,10 @@
 ## Status terakhir
 
 - Status: **Berjalan**
-- Deployment aktif: **@93**
+- Deployment aktif: **@94**
 - URL aplikasi: `https://script.google.com/macros/s/AKfycbxT0gids44DaWESXxIDj6Mrjc146qhsqoq-4b-605j3bLrSfjyCNLELdbIm_FN0fJP-6A/exec`
 - Branch GitHub: `main`
-- Versi aplikasi: **v2.12.0**
+- Versi aplikasi: **v2.13.0**
 
 ## Sudah selesai
 
@@ -16,6 +16,7 @@
 - Menu **Rekap Petugas** menampilkan tabel pemetaan Subbagian UPJKP, jabatan, nama Sheet2, nama master, status kecocokan, dan `personnel_id`.
 - Setiap nama pada `MASTER_PETUGAS_UPJKP` memiliki ID khusus Subbagian UPJKP berformat `UPJKP-PER-001` sampai `UPJKP-PER-021`; ID `PET-xxxx` tetap menjadi referensi ke master umum.
 - Muhayat ditambahkan sebagai **Staff Ahli UPJKP** pada urutan `UPJKP-PER-002`; ID personel setelahnya diurutkan ulang sampai `UPJKP-PER-022`, sehingga total personel UPJKP menjadi 22.
+- Muhayat juga ditambahkan ke `MASTER_PETUGAS` sebagai **Staff Penunjang** dengan ID master `PET-0183` dan bidang `Staff Ahli UPJKP`.
 - Verifikasi produksi melalui Chrome menemukan sheet `MASTER_PETUGAS` berisi 182 nama, serta rekap aktif menampilkan 798 kegiatan BT, 386 RP, dan 46 TR.
 
 - Dashboard Utama dan dashboard khusus empat subbagian.
@@ -101,6 +102,7 @@
 - Kode v2.10.1 berhasil dibuat sebagai Apps Script version **91** dan deployment produksi aktif sebagai **@91**; seluruh 21 pemetaan Sheet2 berstatus **COCOK** dengan nama kanonik dari `MASTER_PETUGAS`.
 - Kode v2.11.0 berhasil dibuat sebagai Apps Script version **92** dan deployment produksi aktif sebagai **@92**; seluruh 21 personel UPJKP telah memiliki ID khusus dan terverifikasi melalui export Google Sheet.
 - Kode v2.12.0 berhasil dibuat sebagai Apps Script version **93** dan deployment produksi aktif sebagai **@93**; `MASTER_PETUGAS_UPJKP` terverifikasi berisi 22 personel dengan urutan ID baru.
+- Kode v2.13.0 berhasil dibuat sebagai Apps Script version **94** dan deployment produksi aktif sebagai **@94**; Muhayat terhubung dari `UPJKP-PER-002` ke `PET-0183` sebagai Staff Penunjang.
 - Percobaan `clasp run syncAdministrasi --params "[{}]"` setelah deployment final **@72** pada **10 September 2026 pukul 12:20 WIB** ditolak oleh Execution API (`Unable to run script function`), sehingga migrasi data aktual perlu dipicu dari akun pemilik lewat **Administrasi -> Import / Export -> Sinkronkan Administrasi** atau **Sinkronkan Semua Sumber**.
 - Dashboard produksi dibuka di Chrome Profile 2 pada halaman **Import / Export** agar sinkronisasi Administrasi dapat dijalankan dari UI pemilik.
 - Verifikasi endpoint `?status=rp` dari terminal pada **10 September 2026** dialihkan ke halaman login Google karena akses web app masih `MYSELF`; deployment dikonfirmasi melalui `clasp deployments`.

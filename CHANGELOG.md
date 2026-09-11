@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-11 - v2.13.0
+
+- Menambahkan Muhayat ke `MASTER_PETUGAS` sebagai **Staff Penunjang**.
+- Menetapkan ID master Muhayat menjadi `PET-0183` dengan bidang `Staff Ahli UPJKP`.
+- Menghubungkan `UPJKP-PER-002` dengan `PET-0183` pada `MASTER_PETUGAS_UPJKP`.
+- Deployment produksi diperbarui ke **@94** (Apps Script version **94**).
+
 ## 2026-09-11 - v2.12.0
 
 - Menambahkan Muhayat sebagai **Staff Ahli UPJKP** pada ID `UPJKP-PER-002`.
