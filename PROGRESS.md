@@ -3,12 +3,16 @@
 ## Status terakhir
 
 - Status: **Berjalan**
-- Deployment aktif: **@86**
+- Deployment aktif: **@89**
 - URL aplikasi: `https://script.google.com/macros/s/AKfycbxT0gids44DaWESXxIDj6Mrjc146qhsqoq-4b-605j3bLrSfjyCNLELdbIm_FN0fJP-6A/exec`
 - Branch GitHub: `main`
-- Versi aplikasi: **v2.8.0**
+- Versi aplikasi: **v2.9.0**
 
 ## Sudah selesai
+
+- File `Nama petugas untuk kegiatan upjkp.xlsx` telah dimasukkan sebagai referensi `MASTER_PETUGAS` di Google Sheet Master: 182 nama unik, dengan kelompok Peneliti, Staff Penunjang, dan Pelaksana/Teknis.
+- Menu **Rekap Petugas** menghitung keterlibatan kegiatan unik per nama untuk BT, RP, dan TR berdasarkan `TIM_SPJ`, PIC kegiatan, dan PIC laporan. Perbedaan gelar dinormalisasi dan tidak dihitung sebagai nama berbeda.
+- Verifikasi produksi melalui Chrome menemukan sheet `MASTER_PETUGAS` berisi 182 nama, serta rekap aktif menampilkan 798 kegiatan BT, 386 RP, dan 46 TR.
 
 - Dashboard Utama dan dashboard khusus empat subbagian.
 - Google Sheet khusus **Monitoring Rekomendasi Pemupukan** dengan sepuluh tab regional/swasta.
@@ -88,6 +92,7 @@
 - Tindakan checkpoint tersedia pada setiap baris Monitoring Laporan dan pada detail laporan; field yang tampil menyesuaikan checkpoint yang dipilih.
 - Setiap checkpoint menyimpan perubahan laporan dan histori dengan transaction lock, backup, audit trail, dan satu histori per checkpoint.
 - Kode v2.8.0 berhasil dibuat sebagai Apps Script version **85** dan deployment produksi aktif sebagai **@86**; kolom Tindakan terverifikasi tampil pada halaman Monitoring Laporan melalui Chrome aktif.
+- Kode v2.9.0 berhasil dibuat sebagai Apps Script version **87** dan deployment produksi aktif sebagai **@89**; menu Rekap Petugas dan import `MASTER_PETUGAS` terverifikasi melalui Chrome aktif.
 - Percobaan `clasp run syncAdministrasi --params "[{}]"` setelah deployment final **@72** pada **10 September 2026 pukul 12:20 WIB** ditolak oleh Execution API (`Unable to run script function`), sehingga migrasi data aktual perlu dipicu dari akun pemilik lewat **Administrasi -> Import / Export -> Sinkronkan Administrasi** atau **Sinkronkan Semua Sumber**.
 - Dashboard produksi dibuka di Chrome Profile 2 pada halaman **Import / Export** agar sinkronisasi Administrasi dapat dijalankan dari UI pemilik.
 - Verifikasi endpoint `?status=rp` dari terminal pada **10 September 2026** dialihkan ke halaman login Google karena akses web app masih `MYSELF`; deployment dikonfirmasi melalui `clasp deployments`.

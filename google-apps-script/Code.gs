@@ -34,6 +34,10 @@ function getBootstrap(year) {
   });
 }
 
+function getPersonnelRecap(options) {
+  return getPersonnelRecapInternal_(options || {});
+}
+
 function createActivity(payload) {
   payload = payload || {};
   const companyName = String(payload.perusahaan || '').trim();

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-09-11 - v2.9.0
+
+- Mengimpor daftar petugas dari `Nama petugas untuk kegiatan upjkp.xlsx` ke sheet referensi `MASTER_PETUGAS` pada Google Sheet Master.
+- Menambahkan menu **Rekap Petugas** untuk peneliti, Staff Penunjang, dan Pelaksana/Teknis.
+- Rekap menghitung jumlah kegiatan unik BT, RP, dan TR dari `TIM_SPJ`, PIC kegiatan, dan PIC laporan.
+- Pencocokan nama mengabaikan perbedaan gelar/format gelar dan menampilkan nama database yang terdeteksi.
+- Import pertama memakai transaction lock, backup, dan audit log; proses berikutnya membaca referensi yang sudah tersimpan tanpa membuat duplikasi.
+- Deployment produksi diperbarui ke **@89** (Apps Script version **87**).
+
 ## 2026-09-11 - v2.8.0
 
 - Menambahkan tindakan checkpoint pada setiap monitoring laporan.

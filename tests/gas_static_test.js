@@ -4,7 +4,7 @@ const vm = require('vm');
 
 const root = path.resolve(__dirname, '..', 'google-apps-script');
 const files = [
-  'Schema.gs', 'Config.gs', 'Repository.gs', 'DashboardService.gs', 'Actions.gs',
+  'Schema.gs', 'Config.gs', 'Repository.gs', 'DashboardService.gs', 'PersonnelRoster.gs', 'PersonnelService.gs', 'Actions.gs',
   'Automation.gs', 'CentralSync.gs', 'DemoData.gs', 'Code.gs', 'SelfTest.gs', 'TemplateService.gs', 'SourceSync.gs', 'AdminSync.gs', 'RecommendationSync.gs', 'RecommendationMonitoringSync.gs', 'RecommendationBTFormatSync.gs', 'RecommendationWorkbook.gs',
 ];
 const source = files.map((file) => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
@@ -128,6 +128,8 @@ serverContext.trainingReportFilterFixture = { workflow: 'UMUM', subbagian: 'PLT'
 if (!vm.runInContext("moduleFilterMatches_(legacyBtReportFilterFixture, { workflow: 'BT', subbagian: 'BT' }, 'reports')", serverContext)) throw new Error('Laporan BT historis UMUM tidak masuk filter BT');
 if (!vm.runInContext("moduleFilterMatches_(newBtReportFilterFixture, { workflow: 'UMUM', subbagian: 'BT' }, 'reports')", serverContext)) throw new Error('Laporan BT baru tidak kompatibel dengan filter lama');
 if (vm.runInContext("moduleFilterMatches_(trainingReportFilterFixture, { workflow: 'BT', subbagian: 'BT' }, 'reports')", serverContext)) throw new Error('Filter BT menarik laporan Pelatihan');
+if (vm.runInContext("personnelNormalizeName_('Dr. Edy Suprianto, M.Si.')", serverContext) !== vm.runInContext("personnelNormalizeName_('Edy Suprianto')", serverContext)) throw new Error('Normalisasi gelar nama petugas tidak konsisten');
+if (vm.runInContext("personnelNormalizeName_('M. Yusuf Muslim')", serverContext) !== vm.runInContext("personnelNormalizeName_('M Yusuf Muslim')", serverContext)) throw new Error('Normalisasi format nama petugas tidak konsisten');
 for (const section of ['Empat Subbagian UPJKP', 'Perlu Perhatian', 'Pendapatan vs RKAP', 'Laporan Terbaru', 'Kegiatan Pelatihan Mendatang']) {
   if (!dashboard.includes(section)) throw new Error(`Bagian dashboard hilang: ${section}`);
 }
